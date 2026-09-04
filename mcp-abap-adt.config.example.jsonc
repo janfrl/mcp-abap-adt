@@ -15,7 +15,7 @@
     // An entry whose name matches an imported system overrides just these
     // settings; url, client and keychain stay as imported. Handy for allowing
     // an internally issued certificate on a system saved in Fiori tools.
-    // "DNG001": { "allowSelfSigned": true },
+    // "QAS200": { "allowSelfSigned": true },
 
     // Password from the OS keychain. Store it once with:
     //   mcp-abap-adt store-credentials --system dev

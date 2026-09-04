@@ -228,16 +228,16 @@ describe('configuration without a file', () => {
 
   it('overrides an imported system without repeating it', async () => {
     await writeFioriStore('.saptools', {
-      a: { name: 'DNG001', url: 'https://dng.example.com', client: '001' },
+      a: { name: 'PRD400', url: 'https://prd.example.com', client: '400' },
     });
     const config = await load({
       SAP_IMPORT_FIORI_SYSTEMS: 'true',
-      MCP_ABAP_ADT_CONFIG_JSON: JSON.stringify({ systems: { DNG001: { allowSelfSigned: true } } }),
+      MCP_ABAP_ADT_CONFIG_JSON: JSON.stringify({ systems: { PRD400: { allowSelfSigned: true } } }),
     });
 
-    expect(config.systems.get('DNG001')).toMatchObject({
-      url: 'https://dng.example.com',
-      client: '001',
+    expect(config.systems.get('PRD400')).toMatchObject({
+      url: 'https://prd.example.com',
+      client: '400',
       keychain: true,
       allowSelfSigned: true,
     });

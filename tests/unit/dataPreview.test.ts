@@ -23,13 +23,13 @@ function tableData(columns: Array<{ name: string; values: string[] }>, extra = '
   );
 }
 
-/** Trimmed from a real T000 response, including its empty ADRNR column. */
+/** Shaped like a real T000 response, including its empty ADRNR column. */
 const T000 = tableData(
   [
     { name: 'MANDT', values: ['000', '100'] },
-    { name: 'MTEXT', values: ['SAP AG', 'EWM Entwicklung'] },
+    { name: 'MTEXT', values: ['SAP AG', 'Development'] },
     { name: 'ADRNR', values: ['', ''] },
-    { name: 'LOGSYS', values: ['DWMCLNT000', 'DWMCLNT100'] },
+    { name: 'LOGSYS', values: ['DEVCLNT000', 'DEVCLNT100'] },
   ],
   '<dataPreview:totalRows>2</dataPreview:totalRows>' +
     '<dataPreview:executedQueryString>SELECT * FROM T000   INTO     TABLE @DATA(LT_RESULT)   UP TO 2  ROWS   .</dataPreview:executedQueryString>',
@@ -41,8 +41,8 @@ describe('parseDataPreview', () => {
 
     expect(result?.columns).toEqual(['MANDT', 'MTEXT', 'ADRNR', 'LOGSYS']);
     expect(result?.rows).toEqual([
-      ['000', 'SAP AG', '', 'DWMCLNT000'],
-      ['100', 'EWM Entwicklung', '', 'DWMCLNT100'],
+      ['000', 'SAP AG', '', 'DEVCLNT000'],
+      ['100', 'Development', '', 'DEVCLNT100'],
     ]);
   });
 
@@ -119,8 +119,8 @@ describe('formatDataPreview', () => {
         '# SELECT * FROM T000 INTO TABLE @DATA(LT_RESULT) UP TO 2 ROWS .',
         '# 2 rows',
         'MANDT,MTEXT,ADRNR,LOGSYS',
-        '000,SAP AG,,DWMCLNT000',
-        '100,EWM Entwicklung,,DWMCLNT100',
+        '000,SAP AG,,DEVCLNT000',
+        '100,Development,,DEVCLNT100',
       ].join('\n'),
     );
   });
@@ -167,7 +167,7 @@ describe('compactDataPreview', () => {
     const compacted = compactDataPreview(T000);
 
     expect(compacted.length).toBeLessThan(T000.length / 5);
-    expect(compacted).toContain('EWM Entwicklung');
+    expect(compacted).toContain('Development');
   });
 
   it('falls back to the raw payload rather than failing on an unknown shape', () => {

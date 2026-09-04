@@ -181,11 +181,11 @@ describe('bulk safety', () => {
     });
     const { io } = scriptedIo({ secret: ['pw'], yesNo: [true] });
 
-    const code = await storeCredentials({ all: true, username: 'JFROEHLICH', configFile }, { backend, io });
+    const code = await storeCredentials({ all: true, username: 'DEVELOPER', configFile }, { backend, io });
 
     expect(code).toBe(0);
     expect(JSON.parse(store.get('https://qas.example.com/200') ?? '')).toMatchObject({ username: 'SAP_SUPPORT' });
-    expect(JSON.parse(store.get('https://dev.example.com/100') ?? '')).toMatchObject({ username: 'JFROEHLICH' });
+    expect(JSON.parse(store.get('https://dev.example.com/100') ?? '')).toMatchObject({ username: 'DEVELOPER' });
   });
 
   it('marks entries that already exist in the summary', async () => {

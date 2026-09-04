@@ -96,7 +96,7 @@ Every setting the config file accepts can also be given on the command line or t
   "args": ["-y", "@janfr/mcp-abap-adt"],
   "env": {
     "SAP_IMPORT_FIORI_SYSTEMS": "true",
-    "SAP_DEFAULT_SYSTEM": "DWM100"
+    "SAP_DEFAULT_SYSTEM": "DEV100"
   }
 }
 ```
@@ -114,7 +114,7 @@ Adjusting one imported system, without repeating its url and client:
 ```json
 "env": {
   "SAP_IMPORT_FIORI_SYSTEMS": "true",
-  "MCP_ABAP_ADT_CONFIG_JSON": "{\"systems\":{\"DNG001\":{\"language\":\"EN\"}}}"
+  "MCP_ABAP_ADT_CONFIG_JSON": "{\"systems\":{\"PRD400\":{\"language\":\"EN\"}}}"
 }
 ```
 
@@ -189,8 +189,8 @@ A config-file entry whose name matches an imported system is treated as an **ove
 {
   "importFioriSystems": true,
   "systems": {
-    // DNG001 keeps its imported url and client; only this one setting changes.
-    "DNG001": { "language": "EN" }
+    // PRD400 keeps its imported url and client; only this one setting changes.
+    "PRD400": { "language": "EN" }
   }
 }
 ```
