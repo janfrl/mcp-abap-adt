@@ -402,7 +402,7 @@ A run that did not complete is announced on the first line as a tool failure, ah
 
 Two limits worth knowing: ATC generally only has rules for custom code, so SAP standard objects tend to come back with nothing; and `max_findings` is enforced by this server, because the `maximumVerdicts` that ADT sends was observed not to cap anything.
 
-Unlike every other tool here, this one leaves something behind on the server — a transient ATC worklist. [The security model](docs/security.md#the-one-tool-that-leaves-something-behind) sets out what that is and why it still counts as read-only.
+Unlike every other tool here, this one leaves something behind on the server — an ATC worklist that stays valid for ten days and is then removed by ATC housekeeping. [The security model](docs/security.md#the-one-tool-that-leaves-something-behind) sets out what that is and why it still counts as read-only.
 
 ## 7. Troubleshooting
 
