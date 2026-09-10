@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,9 +34,9 @@ afterEach(async () => {
   await rm(workDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 
-async function runCli(args: string[]) {
+async function runCli(args: string[], entry = entryPoint) {
   try {
-    const { stdout, stderr } = await run(process.execPath, [entryPoint, ...args], {
+    const { stdout, stderr } = await run(process.execPath, [entry, ...args], {
       cwd: workDir,
       // See HERMETIC_CHILD_ENV for what each entry is holding back.
       env: { ...HERMETIC_CHILD_ENV },
@@ -78,5 +78,31 @@ describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout:
 
     expect(code).toBe(2);
     expect(output).toContain('--all');
+  });
+
+  /**
+   * npm installs a package's bin as a symlink on macOS and Linux, and Node
+   * resolves the main module to the file behind the link while argv[1] keeps
+   * the link. An entry-point check that compared the two verbatim let every
+   * installed command exit silently without running main() - and no test
+   * noticed, because every test starts `node dist/index.js` directly.
+   * Windows refuses file symlinks without extra privileges, so a directory
+   * junction to dist/ stands in there: the path still differs from the real
+   * one, which is all the check has to survive.
+   */
+  it('runs main() when started through a link, the way npm installs the command', async () => {
+    let linkedEntry = join(workDir, 'mcp-abap-adt');
+    try {
+      await symlink(entryPoint, linkedEntry, 'file');
+    } catch {
+      await symlink(dirname(entryPoint), join(workDir, 'dist-link'), 'junction');
+      linkedEntry = join(workDir, 'dist-link', 'index.js');
+    }
+
+    const { code, output } = await runCli(['doctor'], linkedEntry);
+
+    // Before the fix: exit 0 and no output at all.
+    expect(code).toBe(1);
+    expect(output).toContain('No SAP system is configured');
   });
 });

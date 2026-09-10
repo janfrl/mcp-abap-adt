@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { loadAppConfig, type AppConfigOverrides } from './config/load.js';
@@ -139,9 +140,26 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   process.on('SIGTERM', shutdown);
 }
 
-const isEntryPoint = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+/**
+ * Whether this file is the process's main module, as opposed to being imported
+ * by a test. Both sides are resolved to their real paths first: npm installs a
+ * package's bin as a symlink on macOS and Linux, and Node resolves the main
+ * module to the file behind the link while argv[1] keeps the link itself.
+ * Comparing the two verbatim made every installed command - global install
+ * and npx alike - exit silently without ever running main(); only a direct
+ * `node dist/index.js` matched, which is exactly what the tests used.
+ */
+function isMainModule(): boolean {
+  const entry = process.argv[1];
+  if (entry === undefined) return false;
+  try {
+    return realpathSync.native(fileURLToPath(import.meta.url)) === realpathSync.native(entry);
+  } catch {
+    return false;
+  }
+}
 
-if (isEntryPoint) {
+if (isMainModule()) {
   main().catch((error: unknown) => {
     logWarn(`fatal: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
