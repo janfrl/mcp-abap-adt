@@ -35,7 +35,7 @@ One path, start to finish, for the common case: one or more systems, the passwor
 npm install -g @janfr/mcp-abap-adt
 ```
 
-**2. Tell it about your systems and store the password.** If your team gave you a systems file, use that one. Otherwise write it yourself — a file `sap-systems.jsonc` with your system in it:
+**2. Tell it about your systems and store the password.** If your team gave you a systems file, use that one. Otherwise write it yourself: a file named `sap-systems.jsonc`, saved anywhere you like (your Downloads folder is fine — the next step copies what it needs), with your system in it:
 
 ```jsonc
 {
@@ -45,11 +45,13 @@ npm install -g @janfr/mcp-abap-adt
 }
 ```
 
-Then run one command with the file and answer the username and password prompts once:
+Then run one command with the file's path and answer the username and password prompts once:
 
 ```bash
-mcp-abap-adt setup --from <path to the file>
+mcp-abap-adt setup --from C:\Users\you\Downloads\sap-systems.jsonc
 ```
+
+(Dragging the file into the terminal window pastes its path.)
 
 It stores the password in the OS keychain (the prompt does not echo it) and writes the systems to a user-level settings file that every MCP client on this machine reads — so nothing below needs a path. The systems file itself can be deleted afterwards, or kept for the next colleague.
 
