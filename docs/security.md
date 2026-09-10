@@ -53,7 +53,7 @@ Only the store's metadata is read for that, never a credential.
 
 ## TLS and the trust stores
 
-Verification is always on; `allowSelfSigned` is a per-system last resort that switches it off for that one system.
+Verification is on by default; `allowSelfSigned` is a per-system last resort that switches it off for that one system.
 
 Node normally validates against its own bundled CA list and ignores the operating system's trust store — which is why a certificate from a company CA fails in Node while every browser on the same machine accepts it. This server therefore loads the OS trust store itself at startup, additively: Node's bundled list, plus whatever `NODE_EXTRA_CA_CERTS` contributed, plus the OS store. Trust only ever widens to CAs the operating system already accepts; verification itself never weakens.
 
