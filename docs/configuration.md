@@ -54,6 +54,12 @@ systems.dev.keychain=true
 
 Everything else — a config file in the working directory, the environment, the command line — takes precedence over it, in that order.
 
+## One system at a time: `add` and `remove`
+
+`mcp-abap-adt add` asks for name, URL, client and language (any of them can be given as `--name`, `--url`, `--client`, `--language`, or the name as the first argument), validates the entry, writes it into the rc file with `keychain: true`, and then asks once for username and password to fill the keychain entry; `--skip-credentials` leaves that step out. An existing system of the same name is only replaced after confirmation.
+
+`mcp-abap-adt remove <name>` takes the entry out of the rc file. The keychain entry stays, because the SAP Fiori tools extension may share it. Both commands keep the previous rc file as `.bak`. Systems that come from SAP Fiori tools are not in the rc file and are managed in the extension.
+
 ## Onboarding a whole team: `setup --from`
 
 Because passwords live in the keychain, the system list itself contains no secrets — so it can be shared. Put a file like this in your team's repository or on a share:

@@ -53,7 +53,7 @@ and paste your systems as JSON when asked (edit the url and client; add more sys
 
 It then asks once for username and password. The password goes into the OS keychain (the prompt does not echo it), and the systems go into a user-level settings file that every MCP client on this machine reads — so nothing below needs a path.
 
-If your team keeps the systems in a file, pass it instead of pasting: `mcp-abap-adt setup --from <path or https URL>` ([details](docs/configuration.md#onboarding-a-whole-team-setup---from)).
+If your team keeps the systems in a file, pass it instead of pasting: `mcp-abap-adt setup --from <path or https URL>` ([details](docs/configuration.md#onboarding-a-whole-team-setup---from)). For one system without any JSON, `mcp-abap-adt add` asks for the fields instead.
 
 **3. Connect Claude Desktop.** Settings → Developer → Edit Config, add the entry, save, restart Claude Desktop:
 
@@ -179,6 +179,18 @@ Each variable has the same name and meaning as the corresponding config-file key
 ### One config for several clients, or a whole team
 
 A user-level `.mcp-abap-adtrc` applies to every MCP client on the machine, and `setup --from <shared file>` turns onboarding a colleague into one command: config written, one password prompt, keychain filled. Both are described in [docs/configuration.md](docs/configuration.md).
+
+### Adding or removing one system
+
+For a single system, `add` asks for the fields one by one — name, URL, client, language — then for username and password, and writes the rc entry and the keychain entry:
+
+```bash
+mcp-abap-adt add
+mcp-abap-adt add QAS200 --url https://qas.example.com:44300 --client 200   # fields as flags; whatever is missing is asked
+mcp-abap-adt remove QAS200
+```
+
+`remove` takes the system out of the rc file and leaves the keychain entry alone, since the SAP Fiori tools extension may share it. Systems imported from SAP Fiori tools are managed there.
 
 ### Adjusting an imported system
 

@@ -75,6 +75,13 @@ describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout:
     expect(output).toContain('Usage: mcp-abap-adt setup [--from');
   });
 
+  it('remove without a name prints usage and exits with 2', async () => {
+    const { code, output } = await runCli(['remove']);
+
+    expect(code).toBe(2);
+    expect(output).toContain('Usage: mcp-abap-adt remove');
+  });
+
   it('store-credentials without arguments prints usage naming the bulk mode', async () => {
     const { code, output } = await runCli(['store-credentials']);
 

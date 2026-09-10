@@ -1,15 +1,15 @@
-import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { extname, join, resolve } from 'node:path';
 import type { Readable } from 'node:stream';
 import { loadConfig } from 'c12';
 import { defu } from 'defu';
-import { parse as parseRc, serialize as serializeRc } from 'rc9';
 
 import { loadKeychainBackend } from '../auth/providers/keychain.js';
 import { formatIssues } from '../config/load.js';
 import { AppConfigFileSchema, SystemConfigSchema, type ResolvedSystem } from '../config/schema.js';
+import { defaultRcDir, isRcSafeName, rcPathIn, readRc, writeRc } from './rcFile.js';
 import { defaultIo, storeBulk, type CliDeps, type CliIo } from './storeCredentials.js';
 
 export interface SetupOptions {
@@ -124,11 +124,6 @@ async function readTeamFileFromStdin(
   const file = join(dir, 'team-systems.jsonc');
   await writeFile(file, text, 'utf8');
   return { file, cleanup: () => rm(dir, { recursive: true, force: true }) };
-}
-
-/** The same resolution rc9 uses when c12 reads the file back. */
-function defaultRcDir(): string {
-  return process.env.XDG_CONFIG_HOME || homedir();
 }
 
 /** Generous for a system list; a limit only so a wrong URL cannot stream anything into memory. */
@@ -267,7 +262,7 @@ async function setupFromFile(
     // makes the line unparseable, and an all-digit name turns `systems` into
     // a sparse array - each of them silently, on the next read. Measured, not
     // imagined; hence names are gated here, where the file can still be fixed.
-    if (!/^[A-Za-z0-9_-]+$/u.test(name) || /^\d+$/u.test(name)) {
+    if (!isRcSafeName(name)) {
       io.err(
         `The team file is invalid - system name "${name}" cannot survive the rc file format: ` +
           'use letters, digits, _ or - (not digits only), without spaces or dots.\n',
@@ -297,16 +292,8 @@ async function setupFromFile(
   // Fold into the rc file, with everything local winning: a personal
   // allowSelfSigned or defaultSystem must survive re-running setup after the
   // team list changed.
-  const rcDir = deps.rcDir ?? defaultRcDir();
-  const rcPath = join(rcDir, '.mcp-abap-adtrc');
-  let existing: Record<string, unknown> = {};
-  let hadRc = false;
-  try {
-    existing = parseRc(await readFile(rcPath, 'utf8'));
-    hadRc = true;
-  } catch {
-    // no rc file yet - the normal case on a fresh machine
-  }
+  const rcPath = rcPathIn(deps.rcDir ?? defaultRcDir());
+  const { config: existing, existed: hadRc } = await readRc(rcPath);
 
   // Written from the raw entries, not the parsed ones: parsing fills every
   // schema default, and serialising those would freeze today's defaults into
@@ -328,12 +315,7 @@ async function setupFromFile(
     systems: normalisedSystems,
   });
 
-  if (hadRc) {
-    // The rc file is hand-editable state; a re-run must never cost the user
-    // their own edits without a way back.
-    await copyFile(rcPath, `${rcPath}.bak`);
-  }
-  await writeFile(rcPath, serializeRc(merged), 'utf8');
+  await writeRc(rcPath, merged, hadRc);
 
   const existingSystems = new Set(Object.keys((existing.systems as Record<string, unknown> | undefined) ?? {}));
   const added = teamSystems.filter(([name]) => !existingSystems.has(name)).map(([name]) => name);

@@ -76,6 +76,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       from: { type: 'string' },
       login: { type: 'boolean' },
       'skip-credentials': { type: 'boolean' },
+      name: { type: 'string' },
+      url: { type: 'string' },
+      client: { type: 'string' },
+      language: { type: 'string' },
     },
     allowPositionals: true,
     strict: false,
@@ -92,6 +96,25 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       username: values.username as string | undefined,
       skipCredentials: values['skip-credentials'] === true,
     });
+    return;
+  }
+
+  if (positionals[0] === 'add') {
+    const { addSystem } = await import('./cli/systems.js');
+    process.exitCode = await addSystem({
+      name: positionals[1] ?? (values.name as string | undefined),
+      url: values.url as string | undefined,
+      client: values.client as string | undefined,
+      language: values.language as string | undefined,
+      username: values.username as string | undefined,
+      skipCredentials: values['skip-credentials'] === true,
+    });
+    return;
+  }
+
+  if (positionals[0] === 'remove') {
+    const { removeSystem } = await import('./cli/systems.js');
+    process.exitCode = await removeSystem({ name: positionals[1] ?? (values.name as string | undefined) });
     return;
   }
 
