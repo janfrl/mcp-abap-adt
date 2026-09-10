@@ -10,6 +10,19 @@ onwards they are generated from conventional commits by
 [changelogen](https://github.com/unjs/changelogen) via `npm run release`, which
 is why the style changes further up the file.
 
+## v2.6.0
+
+[compare changes](https://github.com/janfrl/mcp-abap-adt/compare/v2.5.0...v2.6.0)
+
+### 🚀 Features
+
+- **cli:** Let setup --from read the team list from an https URL ([9e53f3d](https://github.com/janfrl/mcp-abap-adt/commit/9e53f3d))
+- **cli:** Let setup read the systems JSON pasted into the terminal ([7345d4f](https://github.com/janfrl/mcp-abap-adt/commit/7345d4f))
+
+### ❤️ Contributors
+
+- Jan Fröhlich ([@janfrl](https://github.com/janfrl))
+
 ## v2.5.0
 
 [compare changes](https://github.com/janfrl/mcp-abap-adt/compare/v2.4.0...v2.5.0)
