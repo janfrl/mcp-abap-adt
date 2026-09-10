@@ -64,6 +64,13 @@ interface ToolDefinition {
   description: string;
   inputSchema: z.ZodRawShape;
   handler: (connection: SapConnection, args: never) => Promise<ToolResult>;
+  /**
+   * True for a tool that leaves something on the SAP system - today only the
+   * ATC result entry GetAtcFindings creates. Drives the MCP annotations: such
+   * a tool is neither read-only nor idempotent in the spec's sense, harmless
+   * as the entry is, and a client that gates tools by effect should know.
+   */
+  leavesTrace: boolean;
 }
 
 /** Keeps each entry's schema and handler arguments checked against each other. */
@@ -72,8 +79,16 @@ function defineTool<Shape extends z.ZodRawShape>(
   description: string,
   inputSchema: Shape,
   handler: (connection: SapConnection, args: z.infer<z.ZodObject<Shape>>) => Promise<ToolResult>,
+  options: { leavesTrace?: boolean } = {},
 ): ToolDefinition {
-  return { name, description, inputSchema, handler };
+  return { name, description, inputSchema, handler, leavesTrace: options.leavesTrace ?? false };
+}
+
+/** The effect hints MCP clients may show or gate on; they add nothing a server-side check would. */
+function annotationsFor(tool: ToolDefinition) {
+  return tool.leavesTrace
+    ? { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+    : { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 }
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
@@ -180,7 +195,13 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     'Search for ABAP objects using quick search',
     {
       query: z.string().describe('Search query string (use * wildcard for partial match)'),
-      maxResults: z.number().default(100).describe('Maximum number of results to return'),
+      maxResults: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_USAGE_LIMIT)
+        .default(100)
+        .describe('Maximum number of results to return'),
     },
     handleSearchObject,
   ),
@@ -260,8 +281,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   defineTool(
     'GetAtcFindings',
     'Retrieve ABAP Test Cockpit (ATC) findings for one repository object - the quality rules a system ' +
-      'actually enforces, which a syntax check does not reveal. Use it to see whether generated or ' +
-      'proposed code violates the active check variant; findings carry a priority where 1 is the most ' +
+      'actually enforces, which a syntax check does not reveal. It checks the object as stored in the ' +
+      'system, never source text you supply (CheckSyntax does that), so a proposed change is covered only ' +
+      'once it has been applied; findings carry a priority where 1 is the most ' +
       'severe. Note what this does on the server, since ADT offers no read-only way to run a check: the ' +
       'call creates an ATC worklist, a result container owned by the calling user that stays valid for ten ' +
       'days and is then removed by ATC housekeeping. No repository object, Customizing entry or business ' +
@@ -290,6 +312,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         .describe('Maximum number of findings ATC should report (maximumVerdicts)'),
     },
     handleGetAtcFindings,
+    { leavesTrace: true },
   ),
 ];
 
@@ -309,7 +332,11 @@ export function createServer(registry: ConnectionRegistry): McpServer {
   for (const tool of TOOL_DEFINITIONS) {
     server.registerTool(
       tool.name,
-      { description: tool.description, inputSchema: { ...tool.inputSchema, ...systemArgument } },
+      {
+        description: tool.description,
+        inputSchema: { ...tool.inputSchema, ...systemArgument },
+        annotations: annotationsFor(tool),
+      },
       async (args) => {
         const { system, ...rest } = (args ?? {}) as { system?: string };
         try {
