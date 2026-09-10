@@ -51,7 +51,7 @@ Then run one command with the file's path and answer the username and password p
 mcp-abap-adt setup --from C:\Users\you\Downloads\sap-systems.jsonc
 ```
 
-(Dragging the file into the terminal window pastes its path.)
+(Dragging the file into the terminal window pastes its path. An https URL works in place of the path, see [docs/configuration.md](docs/configuration.md).)
 
 It stores the password in the OS keychain (the prompt does not echo it) and writes the systems to a user-level settings file that every MCP client on this machine reads — so nothing below needs a path. The systems file itself can be deleted afterwards, or kept for the next colleague.
 

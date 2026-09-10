@@ -54,6 +54,16 @@ function fakeBackend() {
   };
 }
 
+function fakeFetch(status: number, body = JSON.stringify(TEAM)) {
+  const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    calls.push({ url, headers: (init?.headers ?? {}) as Record<string, string> });
+    return new Response(body, { status });
+  };
+  return { fetch, calls };
+}
+
 describe('setup --from', () => {
   it('onboards a fresh machine: rc file plus one password for all systems', async () => {
     // JSONC on purpose - the shared file should be allowed to carry comments.
@@ -134,6 +144,80 @@ describe('setup --from', () => {
     expect(code).toBe(0);
     expect(store.has('https://dev.example.com/100')).toBe(false);
     expect(store.has('https://qas.example.com/200')).toBe(true);
+  });
+
+  describe('from an https URL', () => {
+    const URL_OK = 'https://raw.example.com/team/main/sap-systems.jsonc';
+
+    it('downloads the list and continues exactly like a local file', async () => {
+      const { fetch, calls } = fakeFetch(200);
+      const { backend, store } = fakeBackend();
+      const { io, out } = scriptedIo({ line: ['someone'], secret: ['pw'], yesNo: [true] });
+
+      const code = await setup({ from: URL_OK }, { io, backend, rcDir, fetch, env: {} });
+
+      expect(code).toBe(0);
+      expect(calls).toHaveLength(1);
+      expect(calls[0].headers.Authorization).toBeUndefined();
+      const rc = await readFile(join(rcDir, '.mcp-abap-adtrc'), 'utf8');
+      expect(rc).toContain('systems.dev.url="https://dev.example.com"');
+      expect(store.has('https://dev.example.com/100')).toBe(true);
+      expect(out()).toContain(`systems from:        ${URL_OK}`);
+    });
+
+    it('sends a token from the environment, so a private repository works', async () => {
+      const { fetch, calls } = fakeFetch(200);
+      const { io } = scriptedIo();
+
+      const code = await setup(
+        { from: URL_OK, skipCredentials: true },
+        { io, backend: fakeBackend().backend, rcDir, fetch, env: { GITHUB_TOKEN: 'ghp_x' } },
+      );
+
+      expect(code).toBe(0);
+      expect(calls[0].headers.Authorization).toBe('Bearer ghp_x');
+    });
+
+    it('explains a 404 as the private-repository case', async () => {
+      const { fetch } = fakeFetch(404, 'Not Found');
+      const { io, err } = scriptedIo();
+
+      const code = await setup({ from: URL_OK }, { io, backend: fakeBackend().backend, rcDir, fetch, env: {} });
+
+      expect(code).toBe(2);
+      expect(err()).toContain('HTTP 404');
+      expect(err()).toContain('GITHUB_TOKEN');
+      expect(err()).toContain('clone');
+      expect(existsSync(join(rcDir, '.mcp-abap-adtrc'))).toBe(false);
+    });
+
+    it('refuses plain http', async () => {
+      const { fetch, calls } = fakeFetch(200);
+      const { io, err } = scriptedIo();
+
+      const code = await setup(
+        { from: 'http://raw.example.com/sap-systems.jsonc' },
+        { io, backend: fakeBackend().backend, rcDir, fetch, env: {} },
+      );
+
+      expect(code).toBe(2);
+      expect(err()).toContain('https');
+      expect(calls).toHaveLength(0);
+    });
+
+    it('applies the data-only rule to the URL path as well', async () => {
+      const { fetch, calls } = fakeFetch(200);
+      const { io, err } = scriptedIo();
+
+      const code = await setup(
+        { from: 'https://raw.example.com/team.ts' },
+        { io, backend: fakeBackend().backend, rcDir, fetch, env: {} },
+      );
+
+      expect(code).toBe(2);
+      expect(err()).toContain('data, not code');
+      expect(calls).toHaveLength(0);
+    });
   });
 
   it('refuses anything that is not data', async () => {

@@ -1,6 +1,6 @@
-import { copyFile, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { extname, join, resolve } from 'node:path';
 import { loadConfig } from 'c12';
 import { defu } from 'defu';
@@ -9,10 +9,10 @@ import { parse as parseRc, serialize as serializeRc } from 'rc9';
 import { loadKeychainBackend } from '../auth/providers/keychain.js';
 import { formatIssues } from '../config/load.js';
 import { AppConfigFileSchema, SystemConfigSchema, type ResolvedSystem } from '../config/schema.js';
-import { defaultIo, storeBulk, type CliDeps } from './storeCredentials.js';
+import { defaultIo, storeBulk, type CliDeps, type CliIo } from './storeCredentials.js';
 
 export interface SetupOptions {
-  /** Path to the shared team list (.json or .jsonc). */
+  /** Path or https URL of the shared team list (.json or .jsonc). */
   from?: string;
   username?: string;
   skipCredentials?: boolean;
@@ -21,11 +21,90 @@ export interface SetupOptions {
 export interface SetupDeps extends CliDeps {
   /** Directory holding the rc file; tests point this at a scratch directory. */
   rcDir?: string;
+  fetch?: typeof globalThis.fetch;
+  env?: NodeJS.ProcessEnv;
 }
 
 /** The same resolution rc9 uses when c12 reads the file back. */
 function defaultRcDir(): string {
   return process.env.XDG_CONFIG_HOME || homedir();
+}
+
+/** Generous for a system list; a limit only so a wrong URL cannot stream anything into memory. */
+const MAX_TEAM_FILE_BYTES = 256 * 1024;
+
+interface TeamFileSource {
+  file: string;
+  cleanup?: () => Promise<void>;
+}
+
+/** A local path, or an https URL that is downloaded to a temporary file so both take the same path from here. */
+async function resolveTeamFile(from: string, deps: SetupDeps, io: CliIo): Promise<TeamFileSource | number> {
+  let url: URL | undefined;
+  if (/^[a-z][a-z0-9+.-]*:\/\//iu.test(from)) {
+    try {
+      url = new URL(from);
+    } catch {
+      io.err(`"${from}" is not a valid URL.\n`);
+      return 2;
+    }
+  }
+
+  // Data only, never code: a shared file gets edited by whoever can push to
+  // the team repo, and .ts configs execute on load. The same reasoning bans
+  // `extends`, which can pull further files from anywhere.
+  const extension = extname(url ? url.pathname : from).toLowerCase();
+  if (extension !== '.json' && extension !== '.jsonc') {
+    io.err(
+      `The team file must be .json or .jsonc, not "${extension || '(none)'}": a shared file must be data, not code.\n`,
+    );
+    return 2;
+  }
+
+  if (!url) {
+    const file = resolve(from);
+    if (!existsSync(file)) {
+      io.err(`No file at ${file}.\n`);
+      return 2;
+    }
+    return { file };
+  }
+
+  if (url.protocol !== 'https:') {
+    io.err('The team file URL must use https: the systems in it are where passwords get sent.\n');
+    return 2;
+  }
+  // A token, when the environment has one, is what makes a private repository
+  // readable; the names are the ones the gh CLI and GitHub Actions use.
+  const env = deps.env ?? process.env;
+  const token = env.GITHUB_TOKEN || env.GH_TOKEN;
+  const headers: Record<string, string> = { Accept: 'application/json, text/plain, */*' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  let response: Response;
+  try {
+    response = await (deps.fetch ?? globalThis.fetch)(url, { headers, redirect: 'follow' });
+  } catch (error) {
+    io.err(`Could not download ${url.href}: ${error instanceof Error ? error.message : String(error)}\n`);
+    return 2;
+  }
+  if (!response.ok) {
+    const hint = [401, 403, 404].includes(response.status)
+      ? ' A private repository answers like this without a token: set GITHUB_TOKEN, or clone the repository and pass the local path instead.'
+      : '';
+    io.err(`Could not download ${url.href}: HTTP ${response.status}.${hint}\n`);
+    return 2;
+  }
+  const text = await response.text();
+  if (text.length > MAX_TEAM_FILE_BYTES) {
+    io.err(`${url.href} is larger than ${MAX_TEAM_FILE_BYTES} bytes, which no system list is.\n`);
+    return 2;
+  }
+
+  const dir = await mkdtemp(join(tmpdir(), 'mcp-abap-adt-setup-'));
+  const file = join(dir, `team-systems${extension}`);
+  await writeFile(file, text, 'utf8');
+  return { file, cleanup: () => rm(dir, { recursive: true, force: true }) };
 }
 
 /**
@@ -41,28 +120,22 @@ export async function setup(options: SetupOptions, deps: SetupDeps = {}): Promis
 
   if (!options.from) {
     io.err(
-      'Usage: mcp-abap-adt setup --from <path to shared systems file> [--username <user>] [--skip-credentials]\n' +
+      'Usage: mcp-abap-adt setup --from <path or https URL of the shared systems file> [--username <user>] [--skip-credentials]\n' +
         'The file holds the same object a config file does ("systems", optional "defaultSystem") and no secrets.\n',
     );
     return 2;
   }
 
-  const from = resolve(options.from);
-  // Data only, never code: a shared file gets edited by whoever can push to
-  // the team repo, and .ts configs execute on load. The same reasoning bans
-  // `extends`, which can pull further files from anywhere.
-  const extension = extname(from).toLowerCase();
-  if (extension !== '.json' && extension !== '.jsonc') {
-    io.err(
-      `The team file must be .json or .jsonc, not "${extension || '(none)'}": a shared file must be data, not code.\n`,
-    );
-    return 2;
+  const source = await resolveTeamFile(options.from, deps, io);
+  if (typeof source === 'number') return source;
+  try {
+    return await setupFromFile(source.file, options, deps, io);
+  } finally {
+    await source.cleanup?.();
   }
-  if (!existsSync(from)) {
-    io.err(`No file at ${from}.\n`);
-    return 2;
-  }
+}
 
+async function setupFromFile(from: string, options: SetupOptions, deps: SetupDeps, io: CliIo): Promise<number> {
   const loaded = await loadConfig({
     configFile: from,
     rcFile: false,
@@ -165,6 +238,8 @@ export async function setup(options: SetupOptions, deps: SetupDeps = {}): Promis
   const added = teamSystems.filter(([name]) => !existingSystems.has(name)).map(([name]) => name);
   const kept = teamSystems.filter(([name]) => existingSystems.has(name)).map(([name]) => name);
   io.out(`Wrote ${rcPath}${hadRc ? ` (previous version in ${rcPath}.bak)` : ''}.\n`);
+  // Named back so a wrong URL, and with it a wrong destination for passwords, is visible.
+  io.out(`  systems from:        ${options.from}\n`);
   if (added.length > 0) io.out(`  added:               ${added.join(', ')}\n`);
   if (kept.length > 0) io.out(`  kept local settings: ${kept.join(', ')}\n`);
   if (keychainDefaulted.length > 0) {
