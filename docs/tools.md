@@ -38,6 +38,8 @@ A hit inside a method carries its type in the URI fragment rather than on the ob
 
 `GetAtcFindings` runs the ABAP Test Cockpit against one object and returns its findings with priority, line, the sub-object they sit in, the check that fired and its message. That is a different question from `CheckSyntax`: syntax says whether code compiles, ATC says whether it obeys the rules this system has decided to enforce — which a model cannot know from training data.
 
+What gets checked is the object **as it is stored in the system**, not an unsaved draft. A change a model has only proposed is covered once it has been applied through some other channel; for text that exists only in the conversation, `CheckSyntax` is the tool. Conflating the two is how a model ends up calling its own change "ATC-checked" when only the previous state was.
+
 Which rules those are depends entirely on the **check variant**. There is no universal default, so `check_variant` is optional and falls back to the variant the system itself has configured (`systemCheckVariant` in the ATC customizing), exactly as ADT does for "Run ABAP Test Cockpit".
 
 A variant the system does not offer is **rejected**, with the names it does offer, rather than run. That matters more than it sounds: SAP does not refuse an unusable variant but silently runs its own default instead, and nothing in the response says which variant executed — so without the check an answer could name a variant that never ran. [The security model](security.md#why-the-check-variant-is-validated-first) has the measurements behind that.

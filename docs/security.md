@@ -1,6 +1,6 @@
 # Security model
 
-The short version: this server cannot write to a SAP system, credentials never touch a file, certificate verification is always on, and the real boundary on what can be read is the SAP authorization of the configured user. The sections below give the reasoning for anyone who wants to verify rather than trust.
+The short version: no tool changes ABAP repository objects, Customizing or business data; with the recommended setup, credentials never touch a file and certificate verification stays on (plaintext passwords and `allowSelfSigned` exist, as deliberate per-system opt-ins); and the real boundary on what can be read is the SAP authorization of the configured user. The sections below give the reasoning for anyone who wants to verify rather than trust.
 
 ## Read-only by design
 

@@ -1,6 +1,6 @@
 # mcp-abap-adt
 
-An MCP server that lets tools like [Claude Desktop](https://claude.com/download), [Claude Code](https://claude.com/claude-code) or [Cline](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev) read from your SAP ABAP systems through ADT (ABAP Development Tools): program and class sources, table structures and contents, CDS views, packages, where-used lists, syntax and ATC checks, and more. It never writes.
+An MCP server that lets tools like [Claude Desktop](https://claude.com/download), [Claude Code](https://claude.com/claude-code) or [Cline](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev) read from your SAP ABAP systems through ADT (ABAP Development Tools): program and class sources, table structures and contents, CDS views, packages, where-used lists, syntax and ATC checks, and more. Nothing it does changes repository objects, Customizing or business data.
 
 This is a fork of [mario-andreschak/mcp-abap-adt](https://github.com/mario-andreschak/mcp-abap-adt) that adds:
 
@@ -35,29 +35,23 @@ One path, start to finish, for the common case: one or more systems, the passwor
 npm install -g @janfr/mcp-abap-adt
 ```
 
-**2. Tell it about your system and store the password.** Two ways, pick one:
+**2. Tell it about your systems and store the password.** If your team gave you a systems file, use that one. Otherwise write it yourself — a file `sap-systems.jsonc` with your system in it:
 
-- Your team gave you a systems file? Run this, answer the username and password prompts once, done:
-
-  ```bash
-  mcp-abap-adt setup --from <path to the file>
-  ```
-
-- Otherwise create a file `mcp-abap-adt.config.jsonc` somewhere permanent, for example in your home directory:
-
-  ```jsonc
-  {
-    "systems": {
-      "dev": { "url": "https://dev.example.com:44300", "client": "100", "keychain": true }
-    }
+```jsonc
+{
+  "systems": {
+    "dev": { "url": "https://dev.example.com:44300", "client": "100" }
   }
-  ```
+}
+```
 
-  and store the password in the keychain (the prompt does not echo it):
+Then run one command with the file and answer the username and password prompts once:
 
-  ```bash
-  mcp-abap-adt store-credentials --system dev
-  ```
+```bash
+mcp-abap-adt setup --from <path to the file>
+```
+
+It stores the password in the OS keychain (the prompt does not echo it) and writes the systems to a user-level settings file that every MCP client on this machine reads — so nothing below needs a path. The systems file itself can be deleted afterwards, or kept for the next colleague.
 
 **3. Connect Claude Desktop.** Settings → Developer → Edit Config, add the entry, save, restart Claude Desktop:
 
@@ -70,8 +64,6 @@ npm install -g @janfr/mcp-abap-adt
   }
 }
 ```
-
-If you wrote a config file in step 2, add its path: `"args": ["--config", "C:/Users/you/mcp-abap-adt.config.jsonc"]` (forward slashes work on Windows too). With `setup --from` nothing else is needed — the systems were written where the server finds them by itself.
 
 **4. Check.** In the terminal:
 
@@ -328,7 +320,7 @@ Every tool below takes an optional **`system`** argument naming a configured sys
 | `GetTypeInfo` | Domain or data element | `type_name` |
 | `GetCDSView` | CDS view (DDL source) | `cds_view_name` |
 | `GetTransaction` | Transaction details | `transaction_name` |
-| `SearchObject` | Quick search across objects | `query`, `maxResults` (default 100) |
+| `SearchObject` | Quick search across objects | `query`, `maxResults` (default 100, max 1000) |
 | `GetBehaviorDefinition` | RAP behavior definition (needs ~NW 7.54 / S/4HANA) | `behavior_definition_name` |
 | `GetServiceDefinition` | RAP service definition (needs ~NW 7.54 / S/4HANA) | `service_definition_name` |
 | `CheckSyntax` | Non-activating syntax check of source text you supply | `object_type`, `object_name`, `source` |
