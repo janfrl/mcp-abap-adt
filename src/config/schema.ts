@@ -11,7 +11,17 @@ export type AuthType = (typeof AUTH_TYPES)[number];
 
 export const SystemConfigSchema = z.object({
   /** Base URL of the SAP system, e.g. https://vhcalnplci.dummy.nodomain:44300 */
-  url: z.url(),
+  // A user:password@ part would be echoed by ListSystems and doctor, which
+  // promise to show no credentials, and the connection drops it anyway.
+  url: z.url().refine(
+    (value) => {
+      // A value z.url() already rejected is not this check's business.
+      if (!URL.canParse(value)) return true;
+      const parsed = new URL(value);
+      return parsed.username === '' && parsed.password === '';
+    },
+    { message: 'must not carry a username or password - use "keychain": true or "passwordEnv" instead' },
+  ),
   /**
    * Three digit SAP client. Omitted means the system's default client is used.
    *

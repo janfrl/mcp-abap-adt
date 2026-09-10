@@ -242,6 +242,21 @@ describe('configuration without a file', () => {
       allowSelfSigned: true,
     });
   });
+
+  it('rejects a url that carries credentials, naming the alternatives', async () => {
+    // ListSystems and doctor echo the url and promise to show no credentials.
+    const config = await load({
+      MCP_ABAP_ADT_CONFIG_JSON: JSON.stringify({
+        systems: { dev: { url: 'https://someone:secret@dev.example.com', client: '100' } },
+      }),
+    });
+
+    expect(config.systems.has('dev')).toBe(false);
+    const message = config.errors.map((e) => e.message).join('\n');
+    expect(message).toContain('username or password');
+    expect(message).toContain('passwordEnv');
+    expect(message).not.toContain('secret');
+  });
 });
 
 describe('precedence between the layers', () => {
