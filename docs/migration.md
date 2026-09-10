@@ -44,7 +44,7 @@ The certificate change is the one that will actually bite you. Version 1.2.0 pas
 None of this is required, but it is why the fork exists:
 
 1. **Several systems at once.** Replace the `env` block with a [config file](../README.md#config-file-any-number-of-systems) and pass `system` on a tool call to pick one. `ListSystems` shows what the server resolved.
-2. **No password in a file.** If you use the SAP Fiori tools VS Code extension, set `"importFioriSystems": true` and your saved systems, including their passwords, are picked up from the OS keychain. Otherwise run `mcp-abap-adt store-credentials --system <name>` once. See [Credentials](../README.md#4-credentials).
+2. **No password in a file.** If you use the SAP Fiori tools VS Code extension, set `"importFioriSystems": true` and your saved systems, including their passwords, are picked up from the OS keychain. Otherwise run `mcp-abap-adt store-credentials --system <name>` once. See [Credentials](../README.md#5-credentials).
 3. **Drop the `.env` file.** It still works from the package directory and the working directory, but a config file with keychain credentials leaves no secret on disk.
 
 ## Also fixed along the way

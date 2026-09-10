@@ -1,48 +1,100 @@
 # mcp-abap-adt
 
-An MCP server that lets tools like [Claude Code](https://claude.com/claude-code), [Claude Desktop](https://claude.com/download) or [Cline](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev) read from your SAP ABAP systems through ADT (ABAP Development Tools): program and class sources, table structures and contents, CDS views, packages, and more.
+An MCP server that lets tools like [Claude Desktop](https://claude.com/download), [Claude Code](https://claude.com/claude-code) or [Cline](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev) read from your SAP ABAP systems through ADT (ABAP Development Tools): program and class sources, table structures and contents, CDS views, packages, where-used lists, syntax and ATC checks, and more. It never writes.
 
 This is a fork of [mario-andreschak/mcp-abap-adt](https://github.com/mario-andreschak/mcp-abap-adt) that adds:
 
-- **Several SAP systems at once** — name them in a config file and pick one per tool call.
-- **No passwords in files** — read credentials from the OS keychain, sharing entries with the SAP Fiori tools VS Code extension, or from environment variables.
-- **Certificate verification on by default**, with a per-system opt-out.
+- **Several SAP systems at once** — name them once and pick one per tool call.
+- **No passwords in files** — credentials come from the OS keychain, shared with the SAP Fiori tools VS Code extension.
+- **Certificate verification on by default**, with the operating system's trust store loaded automatically.
 
 ## Contents
 
 1. [Requirements](#1-requirements)
-2. [Installation](#2-installation)
-3. [Configuring SAP systems](#3-configuring-sap-systems)
-4. [Credentials](#4-credentials)
-5. [Connecting an MCP client](#5-connecting-an-mcp-client)
-6. [Available tools](#6-available-tools)
-7. [Troubleshooting](#7-troubleshooting)
-8. [Further reading](#8-further-reading)
+2. [Quick start](#2-quick-start)
+3. [Installation](#3-installation)
+4. [Configuring SAP systems](#4-configuring-sap-systems)
+5. [Credentials](#5-credentials)
+6. [Connecting an MCP client](#6-connecting-an-mcp-client)
+7. [Available tools](#7-available-tools)
+8. [Troubleshooting](#8-troubleshooting)
+9. [Further reading](#9-further-reading)
 
 ## 1. Requirements
 
-- **Node.js 22 or newer.** Check with `node -v`.
-- **An SAP ABAP system reachable over HTTP(S)** with the ADT services active. Your basis administrator can activate `/sap/bc/adt` in transaction `SICF`. You also need a user with the authorizations to read the objects you ask for.
+- **Node.js 22 or newer.** Get the LTS installer from [nodejs.org](https://nodejs.org/) if you do not have it. To check, open a terminal (PowerShell on Windows, Terminal on macOS) and run `node -v`.
+- **An SAP ABAP system reachable over HTTPS** with the ADT services active. Your basis administrator can activate `/sap/bc/adt` in transaction `SICF`. You also need a user with the authorizations to read the objects you ask for.
 
-## 2. Installation
+## 2. Quick start
 
-Most MCP clients run the server for you; you rarely start it by hand. Two ways to install, differing in who decides when you update:
+One path, start to finish, for the common case: one or more systems, the password in the OS keychain, Claude Desktop as the client. Every step has alternatives in the sections below; you do not need them the first time.
 
-**Global install — you decide when to update.** The client entry is `"command": "mcp-abap-adt"` and never changes; updating is one deliberate command:
+**1. Install the server** (in a terminal):
 
 ```bash
 npm install -g @janfr/mcp-abap-adt
 ```
 
-**Plain npx — updates arrive automatically.** The client entry is `npx -y @janfr/mcp-abap-adt`, which resolves `latest` on every start:
+**2. Tell it about your system and store the password.** Two ways, pick one:
 
-```bash
-npx -y @janfr/mcp-abap-adt
+- Your team gave you a systems file? Run this, answer the username and password prompts once, done:
+
+  ```bash
+  mcp-abap-adt setup --from <path to the file>
+  ```
+
+- Otherwise create a file `mcp-abap-adt.config.jsonc` somewhere permanent, for example in your home directory:
+
+  ```jsonc
+  {
+    "systems": {
+      "dev": { "url": "https://dev.example.com:44300", "client": "100", "keychain": true }
+    }
+  }
+  ```
+
+  and store the password in the keychain (the prompt does not echo it):
+
+  ```bash
+  mcp-abap-adt store-credentials --system dev
+  ```
+
+**3. Connect Claude Desktop.** Settings → Developer → Edit Config, add the entry, save, restart Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "mcp-abap-adt": {
+      "command": "mcp-abap-adt"
+    }
+  }
+}
 ```
 
-That convenience has a price worth knowing: whatever gets published under this name runs on your machine at the next start, unseen — and this server holds your SAP credentials. If the npm account behind a package is ever compromised (supply-chain attack), auto-updating installations are the ones that execute the malicious version. Pinning a version in the npx call (`@janfr/mcp-abap-adt@2.5.0`) closes that window too, at the cost of editing every client to update.
+If you wrote a config file in step 2, add its path: `"args": ["--config", "C:/Users/you/mcp-abap-adt.config.jsonc"]` (forward slashes work on Windows too). With `setup --from` nothing else is needed — the systems were written where the server finds them by itself.
 
-### From source
+**4. Check.** In the terminal:
+
+```bash
+mcp-abap-adt doctor
+```
+
+One table per system: where its credentials come from, whether the keychain holds them, whether the host answers. Then ask Claude "which SAP systems do you see?" — it calls `ListSystems` and lists them.
+
+If you already use the **SAP Fiori tools** VS Code extension and saved your systems there, step 2 shrinks to nothing: the server can adopt those systems and their passwords, see [Credentials](#5-credentials).
+
+## 3. Installation
+
+**Recommended: install globally.** The client entry is `"command": "mcp-abap-adt"` and never changes; you decide when to update, with one command:
+
+```bash
+npm install -g @janfr/mcp-abap-adt
+npm update -g @janfr/mcp-abap-adt   # later, when you want the new version
+```
+
+**Alternative: npx.** `npx -y @janfr/mcp-abap-adt` as the client command needs no installation and fetches the latest version on every start. That convenience means whatever is published under this name runs on your machine unseen, and this server holds your SAP credentials — [the security model](docs/security.md#installing-globally-or-through-npx) explains the trade-off. Pinning a version (`@janfr/mcp-abap-adt@2.5.0`) closes the gap at the cost of editing every client to update.
+
+**From source**, for development:
 
 ```bash
 git clone https://github.com/janfrl/mcp-abap-adt
@@ -53,78 +105,13 @@ npm run build
 
 Then point your client at `node` with the absolute path to `dist/index.js`.
 
-## 3. Configuring SAP systems
+## 4. Configuring SAP systems
 
-**Read the one row that describes you.** The rest of this section is detail on each route, not a sequence to work through.
-
-| If you want | Use | Below |
-| --- | --- | --- |
-| One system, to try this out | the four `SAP_*` variables in your client's `env` block | [Environment variables](#environment-variables-single-system) |
-| To adopt what SAP Fiori tools already knows | `SAP_IMPORT_FIORI_SYSTEMS=true`, nothing else | [Any setting without a file](#any-setting-without-a-file) |
-| Several systems, with comments | a config file | [Config file](#config-file-any-number-of-systems) |
-| One setup for several MCP clients, or a whole team | a user-level rc file, by hand or via `setup` | [docs/shared-configuration.md](docs/shared-configuration.md) |
-
-The routes combine, and precedence runs command line → environment → config file → rc file. Wherever they overlap, `systems` merges entry by entry rather than replacing the whole set, so one route can adjust a single system and leave the rest alone.
-
-### Environment variables (single system)
-
-Setting all four of these gives you one system named `default`, which is what tool calls use when they don't name a system:
-
-| Variable | Required | Meaning |
-| --- | --- | --- |
-| `SAP_URL` | yes | Base URL, e.g. `https://sap.example.com:44300` |
-| `SAP_USERNAME` | yes | SAP user |
-| `SAP_PASSWORD` | yes | Password |
-| `SAP_CLIENT` | yes | Three digit client, e.g. `100` |
-| `SAP_LANGUAGE` | no | Logon language, e.g. `EN` |
-| `SAP_ALLOW_SELF_SIGNED` | no | Last resort: `true` skips certificate verification. Internal company CAs need nothing - the OS trust store is loaded automatically |
-| `SAP_ALLOW_FREE_SQL` | no | `false` forbids ad-hoc SELECTs through `ExecuteQuery` |
-
-Every `SAP_*` variable sets one field of the system named `default`, and each has the same name and meaning as the corresponding config-file key.
-
-> `TLS_REJECT_UNAUTHORIZED=0` from earlier versions still works and means the same as `SAP_ALLOW_SELF_SIGNED=true`, but it prints a deprecation warning. The old name is inverted (`0` means "allow") and looks like Node's `NODE_TLS_REJECT_UNAUTHORIZED`, which it is not.
-
-The variables can come from your MCP client's `env` block or from a `.env` file. Two locations are read: the directory the server is started in, and the package's own directory (where earlier versions kept it). A variable that is already set in the real environment wins over any `.env` file.
-
-### Any setting without a file
-
-Every setting the config file accepts can also be given on the command line or through the environment, so the common setup needs no file:
-
-```json
-{
-  "command": "npx",
-  "args": ["-y", "@janfr/mcp-abap-adt"],
-  "env": {
-    "SAP_IMPORT_FIORI_SYSTEMS": "true",
-    "SAP_DEFAULT_SYSTEM": "DEV100"
-  }
-}
-```
-
-| | Meaning |
-| --- | --- |
-| `SAP_IMPORT_FIORI_SYSTEMS` / `--import-fiori-systems` | Adopt the systems saved in SAP Fiori tools |
-| `SAP_DEFAULT_SYSTEM` / `--default-system <name>` | Which system a tool call uses when it names none |
-| `MCP_ABAP_ADT_CONFIG_JSON` / `--config-json '<json>'` | Any setting, including per-system ones |
-
-`MCP_ABAP_ADT_CONFIG_JSON` takes the same object a config file holds, which is what makes nested settings reachable. It is JSON rather than a set of flat variables on purpose: JSON carries its own types, so a `client` of `"100"` stays a string and nothing has to guess whether `010` means the client `010` or the number ten.
-
-Adjusting one imported system, without repeating its url and client:
-
-```json
-"env": {
-  "SAP_IMPORT_FIORI_SYSTEMS": "true",
-  "MCP_ABAP_ADT_CONFIG_JSON": "{\"systems\":{\"PRD400\":{\"language\":\"EN\"}}}"
-}
-```
-
-A file still earns its place once the configuration grows past a line or two — it takes comments and does not need escaping.
+Two routes cover most setups. Both can be combined, and a system's settings can be adjusted from a second route without repeating the whole entry — [docs/configuration.md](docs/configuration.md) has the details, the file-free variants and the precedence rules.
 
 ### Config file (any number of systems)
 
-A file is optional — see above for the file-free route. Point at one explicitly with `--config <path>` or the `MCP_ABAP_ADT_CONFIG` environment variable. JSON, JSONC, YAML, TOML and `.ts` files all work.
-
-Without an explicit path, the file is looked up as `mcp-abap-adt.config.*` in the **working directory the server is started in**. MCP clients rarely start it where you expect, so an absolute path via `--config` is the reliable choice.
+Pass the path with `--config <path>` in the client's `args`. JSON with comments is fine:
 
 ```jsonc
 {
@@ -177,9 +164,27 @@ Per-system options:
 
 **Which system is the default?** In order: the `defaultSystem` you declared, then a system named `default` created from the `SAP_*` variables, then the only system if there is exactly one. Otherwise every tool call must name a system, and calls that don't get an error listing the valid names.
 
+### Environment variables (single system)
+
+For one system without any file, set these in your client's `env` block. Together they create one system named `default`:
+
+| Variable | Required | Meaning |
+| --- | --- | --- |
+| `SAP_URL` | yes | Base URL, e.g. `https://sap.example.com:44300` |
+| `SAP_USERNAME` | yes | SAP user |
+| `SAP_PASSWORD` | yes | Password |
+| `SAP_CLIENT` | yes | Three digit client, e.g. `100` |
+| `SAP_LANGUAGE` | no | Logon language, e.g. `EN` |
+| `SAP_ALLOW_SELF_SIGNED` | no | Last resort: `true` skips certificate verification. Internal company CAs need nothing - the OS trust store is loaded automatically |
+| `SAP_ALLOW_FREE_SQL` | no | `false` forbids ad-hoc SELECTs through `ExecuteQuery` |
+
+Each variable has the same name and meaning as the corresponding config-file key. The password sits in the client's config file with this route, which is what the keychain avoids.
+
+> `TLS_REJECT_UNAUTHORIZED=0` from earlier versions still works and means the same as `SAP_ALLOW_SELF_SIGNED=true`, but it prints a deprecation warning.
+
 ### One config for several clients, or a whole team
 
-A user-level `.mcp-abap-adtrc` applies to every MCP client on the machine, and `setup --from <shared file>` turns onboarding a colleague into one command: config written, one password prompt, keychain filled. Both are described in [docs/shared-configuration.md](docs/shared-configuration.md).
+A user-level `.mcp-abap-adtrc` applies to every MCP client on the machine, and `setup --from <shared file>` turns onboarding a colleague into one command: config written, one password prompt, keychain filled. Both are described in [docs/configuration.md](docs/configuration.md).
 
 ### Adjusting an imported system
 
@@ -195,13 +200,9 @@ A config-file entry whose name matches an imported system is treated as an **ove
 }
 ```
 
-Spelling out `url` turns the entry into a full definition that replaces the imported one. If an override is invalid, the imported system stays usable and `ListSystems` reports that the override was ignored — a typo in one setting should not cost you access to the system.
+Spelling out `url` turns the entry into a full definition that replaces the imported one. If an override is invalid, the imported system stays usable and `ListSystems` reports that the override was ignored.
 
-The `SAP_*` variables only ever build the system named `default`; they do not affect imported or config-file systems.
-
-Ask the model to call **`ListSystems`** at any time to see what the server actually resolved, including each system's `origin` (`config-file`, `fiori-tools` or `environment`) and any configuration problems. It returns no credentials.
-
-## 4. Credentials
+## 5. Credentials
 
 The server looks for a password in this order and uses the first one that applies: `password`, then `passwordEnv`, then the keychain.
 
@@ -219,7 +220,7 @@ Otherwise store the password yourself:
 mcp-abap-adt store-credentials --system dev
 ```
 
-It asks for the username and a password that is not echoed (`--username <user>` skips the first question, also in the bulk and setup flows). An entry that already exists is only replaced after you confirm, because it may be one the Fiori tools extension wrote.
+It asks for the username and a password that is not echoed (`--username <user>` skips the first question). An entry that already exists is only replaced after you confirm, because it may be one the Fiori tools extension wrote.
 
 When one password serves several systems — the usual case with a central user administration — rotate them all at once:
 
@@ -237,56 +238,15 @@ Name the variable in the config and let your MCP client provide it:
 { "systems": { "qas": { "url": "...", "client": "200", "username": "DEVELOPER", "passwordEnv": "SAP_QAS_PASSWORD" } } }
 ```
 
-### A note on OAuth
+On-premise ADT does not accept OAuth tokens, so Basic authentication is the only option; [the security model](docs/security.md#why-not-oauth) explains why, and why the keychain is the right answer to that.
 
-On-premise ADT does not accept OAuth bearer tokens. `/sap/bc/adt` is a plain ICF node, while OAuth scopes in AS ABAP are a Gateway/OData construct, so there is nothing to authenticate against. OAuth would only be possible against the BTP ABAP Environment, which this server does not support yet. For on-premise systems, the keychain is the way to keep passwords out of files.
+## 6. Connecting an MCP client
 
-## 5. Connecting an MCP client
+All clients follow the same shape: a command to run, optional `args`, and an `env` block for variables. The examples assume the global install; with npx, replace the command with `npx` and put `-y`, `@janfr/mcp-abap-adt` in front of the `args`.
 
-All clients follow the same shape: a command to run, and an `env` block for whatever the server should not have to look up itself.
+**The examples keep the password out of the client's config**, because a password sitting in a shared or synced JSON file is the thing this fork exists to avoid. They rely on the keychain, filled by SAP Fiori tools or by `store-credentials` — see [Credentials](#5-credentials).
 
-**The examples below keep the password out of the client's config**, because a password sitting in a shared or synced JSON file is the thing this fork exists to avoid. They rely on the OS keychain, which is filled either by the SAP Fiori tools VS Code extension or by `store-credentials` — see [Credentials](#4-credentials). The `SAP_*` variables with a plaintext password are shown after each one; they work, and for a throwaway sandbox they are the shortest thing that does.
-
-If you use more than one client — say Claude Desktop and Claude Code — put the systems in a [user-level `.mcp-abap-adtrc`](docs/shared-configuration.md) and keep every client's entry down to the bare command. Then there is one place to change a system rather than one per client.
-
-`NODE_*` flags are Node's own and would have to be repeated in each client's `env` block, since a client passes on only a short list of variables. The one that used to matter here, `NODE_USE_SYSTEM_CA`, is no longer needed: the server loads the operating system's trust store by itself.
-
-### Claude Code
-
-```bash
-claude mcp add --scope user mcp-abap-adt \
-  --env SAP_IMPORT_FIORI_SYSTEMS=true \
-  -- npx -y @janfr/mcp-abap-adt
-```
-
-That adopts every system saved in SAP Fiori tools, with their passwords, and no credential is written anywhere. Call `ListSystems` afterwards to see what it found. For systems you saved with `store-credentials` instead, name them in a config file or an rc file and leave the `env` block off entirely.
-
-Keep `--scope user`, which registers the server for every directory; the default `local` ties it to the one you ran the command in. That is Claude Code's own behaviour rather than anything about this server — `claude mcp list` shows what the current directory has.
-
-Without a keychain entry, the four `SAP_*` variables describe one system directly, at the cost of a password in Claude Code's config file:
-
-```bash
-claude mcp add --scope user mcp-abap-adt \
-  --env SAP_URL=https://sap.example.com:44300 \
-  --env SAP_USERNAME=your_username \
-  --env SAP_PASSWORD=your_password \
-  --env SAP_CLIENT=100 \
-  -- npx -y @janfr/mcp-abap-adt
-```
-
-Or commit a `.mcp.json` in your project root. Because that file is shared, reference variables rather than writing secrets into it — Claude Code expands `${VAR}`:
-
-```json
-{
-  "mcpServers": {
-    "mcp-abap-adt": {
-      "command": "npx",
-      "args": ["-y", "@janfr/mcp-abap-adt", "--config", "./mcp-abap-adt.config.jsonc"],
-      "env": { "SAP_QAS_PASSWORD": "${SAP_QAS_PASSWORD}" }
-    }
-  }
-}
-```
+If you use more than one client — say Claude Desktop and Claude Code — put the systems in a [user-level `.mcp-abap-adtrc`](docs/configuration.md) or run `setup --from` once, and keep every client's entry down to the bare command. Then there is one place to change a system rather than one per client.
 
 ### Claude Desktop
 
@@ -296,21 +256,16 @@ Settings → Developer → Edit Config, then add:
 {
   "mcpServers": {
     "mcp-abap-adt": {
-      "command": "npx",
-      "args": ["-y", "@janfr/mcp-abap-adt"],
-      "env": {
-        "SAP_IMPORT_FIORI_SYSTEMS": "true"
-      }
+      "command": "mcp-abap-adt",
+      "args": ["--config", "C:/Users/you/mcp-abap-adt.config.jsonc"]
     }
   }
 }
 ```
 
-Restart Claude Desktop afterwards. On Windows, use `"command": "npx.cmd"` if `npx` is not found.
+Restart Claude Desktop afterwards. Leave `args` out if the systems come from an rc file or from SAP Fiori tools; for the latter, add `"env": { "SAP_IMPORT_FIORI_SYSTEMS": "true" }` instead. The entry does not change again when a system is added or a password rotates.
 
-This is the whole entry when the systems are in the keychain, and it does not change again when a system is added or a password rotates. With the settings in an rc file instead, even the `env` block goes away.
-
-The plaintext alternative, for a system that is not in the keychain:
+The plaintext alternative, for a throwaway sandbox that is not in the keychain:
 
 ```json
 "env": {
@@ -323,20 +278,42 @@ The plaintext alternative, for a system that is not in the keychain:
 
 Note where that file lives: Claude Desktop's config is readable by anything running as you, and on a managed machine it may be backed up or synced.
 
+### Claude Code
+
+```bash
+claude mcp add --scope user mcp-abap-adt -- mcp-abap-adt --config C:/Users/you/mcp-abap-adt.config.jsonc
+```
+
+Keep `--scope user`, which registers the server for every directory; the default `local` ties it to the one you ran the command in. `claude mcp list` shows what the current directory has. To adopt the SAP Fiori tools systems instead of a file, drop the `--config` part and add `--env SAP_IMPORT_FIORI_SYSTEMS=true` before the `--`.
+
+Or commit a `.mcp.json` in your project root. Because that file is shared, reference variables rather than writing secrets into it — Claude Code expands `${VAR}`:
+
+```json
+{
+  "mcpServers": {
+    "mcp-abap-adt": {
+      "command": "mcp-abap-adt",
+      "args": ["--config", "./mcp-abap-adt.config.jsonc"],
+      "env": { "SAP_QAS_PASSWORD": "${SAP_QAS_PASSWORD}" }
+    }
+  }
+}
+```
+
 ### Cline
 
-Same JSON, in `cline_mcp_settings.json` (VS Code settings → "Cline MCP Settings" → Edit in settings.json).
+Same JSON as for Claude Desktop, in `cline_mcp_settings.json` (VS Code settings → "Cline MCP Settings" → Edit in settings.json).
 
-Since Cline runs inside VS Code, this is where sharing credentials with SAP Fiori tools pays off: save the system once in Fiori tools, then use a config file with `"importFioriSystems": true` and no `env` block at all.
+Since Cline runs inside VS Code, this is where sharing credentials with SAP Fiori tools pays off: save the system once in Fiori tools, then use `"SAP_IMPORT_FIORI_SYSTEMS": "true"` and no file at all.
 
-## 6. Available tools
+## 7. Available tools
 
 Every tool below takes an optional **`system`** argument naming a configured system. Omit it to use the default.
 
 | Tool | Description | Arguments |
 | --- | --- | --- |
 | `ListSystems` | List configured systems, the default, and configuration problems. Returns no credentials. | — |
-| `ExecuteQuery` | Run a read-only ABAP SQL SELECT, returned as CSV | `query`, `maxRows` (default 100, max 5000), `timeoutMs` (default ≥ 60 s) |
+| `ExecuteQuery` | Run a read-only ABAP SQL SELECT, returned as CSV | `query`, `maxRows` (default 100, max 5000), `timeoutMs` |
 | `GetProgram` | ABAP program source | `program_name` |
 | `GetClass` | ABAP class source | `class_name` |
 | `GetInterface` | ABAP interface source | `interface_name` |
@@ -358,61 +335,21 @@ Every tool below takes an optional **`system`** argument naming a configured sys
 | `GetWhereUsed` | Where-used list for a program, class, interface, table, or CDS view | `object_type`, `object_name`, `max_results` (default 100, max 1000) |
 | `GetAtcFindings` | ABAP Test Cockpit findings for one object | `object_type`, `object_name`, `check_variant` (default: the system's), `max_findings` (default 100, max 1000) |
 
-### Reading data
+Nothing here can write. `ExecuteQuery` accepts a single SELECT in ABAP SQL (no `LIMIT`, use `maxRows`), and every query runs under the SAP authorisations of the configured user, which remains the real boundary on what can be read.
 
-`ExecuteQuery` runs a single ABAP SQL SELECT and returns CSV. Prefer it over `GetTableContents` whenever only part of a table is needed — projecting and filtering is what keeps an answer small:
+Three tools do more than fetch an object and are worth a closer look in [docs/tools.md](docs/tools.md): `CheckSyntax` checks text you supply, against an object that need not even exist; `GetWhereUsed` filters SAP's answer down to real usages and always names the true total; `GetAtcFindings` runs the system's own ATC check variant and keeps "no findings" strictly apart from "not checked". It is also the one tool that leaves something on the server — an ATC result entry valid for ten days, [explained in the security model](docs/security.md#the-one-tool-that-leaves-something-behind).
 
-```
-SELECT carrid, connid FROM sflight WHERE carrid = 'LH'
-SELECT COUNT(*) AS cnt FROM t000
-```
-
-Dialect notes, since this is ABAP SQL and not the SQL you may expect: exactly one SELECT, no trailing semicolon, `ASCENDING`/`DESCENDING` instead of `ASC`/`DESC`, and no `LIMIT` clause — use the `maxRows` argument, which defaults to 100 and is capped at 5000.
-
-Nothing here can write — SAP itself turns anything but a query into a syntax error, and the server checks again on top. Every query runs under the SAP authorisations of the configured user, which remains the real boundary on what can be read. `"allowFreeSql": false` forbids ad-hoc queries per system, with a caveat worth reading first: [the security model](docs/security.md#read-only-by-design) explains why that setting makes a model read more data, not less.
-
-### Checking code before it is applied elsewhere
-
-`CheckSyntax` runs SAP's own non-activating check — the one the ABAP editor runs on every keystroke — against source text you pass in. What gets checked is that text, never what the system currently stores, and nothing is saved or activated.
-
-The object you name only lends context: its kind, its includes, its class hierarchy. **It does not have to exist.** SAP checks the supplied text either way, so brand-new code can be validated without first finding a real object to attach it to — which is the more useful half for anything that generates code. POST is required because ADT expects the source in the request body, exactly as `ExecuteQuery` already POSTs a read-only SELECT.
-
-### Finding what depends on an object
-
-`GetWhereUsed` runs the same lookup as Eclipse ADT's Ctrl+Shift+H. Two things about the answer are worth knowing, because SAP's raw response is misleading:
-
-- **Only real usages are listed.** SAP flattens a tree into one list, in which packages and function groups appear as grouping nodes for the hits beneath them. They are not usages, and the count of dropped nodes is reported so the filter can be checked.
-- **The total is always named, even when the list is cut.** A widely used standard object can have hundreds of usages, so `max_results` defaults to 100. A header line states the real total, so a shortened answer can never be mistaken for a short one.
-
-### Quality rules a system actually enforces
-
-`GetAtcFindings` runs the ABAP Test Cockpit against one object and returns its findings with priority, line, the sub-object they sit in, the check that fired and its message. That is a different question from `CheckSyntax`: syntax says whether code compiles, ATC says whether it obeys the rules this system has decided to enforce — which a model cannot know from training data.
-
-Which rules those are depends entirely on the **check variant**. There is no universal default, so `check_variant` is optional and falls back to the variant the system itself has configured (`systemCheckVariant` in the ATC customizing), exactly as ADT does for "Run ABAP Test Cockpit".
-
-A variant the system does not offer is **rejected**, with the names it does offer, rather than run. That matters more than it sounds: SAP does not refuse an unusable variant but silently runs its own default instead, and nothing in the response says which variant executed — so without the check an answer could name a variant that never ran. [The security model](docs/security.md#the-one-tool-that-leaves-something-behind) has the measurements behind that.
-
-Three outcomes are deliberately kept apart, because conflating them is how a model concludes that unchecked code is fine:
-
-- **Findings** — listed per object, with `[prio 1]` the most severe.
-- **No findings** — the object was checked and nothing fired.
-- **Not checked** — ATC returned no result for it at all. The name may not exist, or the object lies outside the variant's scope; SAP standard code usually does. This is reported as its own answer, never as "no findings".
-
-A run that did not complete is announced on the first line as a tool failure, ahead of any count, and findings from the checks that did run are still reported below it.
-
-Two limits worth knowing: ATC generally only has rules for custom code, so SAP standard objects tend to come back with nothing; and `max_findings` is enforced by this server, because the `maximumVerdicts` that ADT sends was observed not to cap anything.
-
-Unlike every other tool here, this one leaves something behind on the server — an ATC worklist that stays valid for ten days and is then removed by ATC housekeeping. [The security model](docs/security.md#the-one-tool-that-leaves-something-behind) sets out what that is and why it still counts as read-only.
-
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 **Start with `doctor`.** One table shows every configured system, where its credentials come from, whether the keychain actually holds the entry, and whether the host is reachable — with the usual causes (VPN, internal CA) named next to the failure:
 
 ```bash
-npx -y @janfr/mcp-abap-adt doctor
+mcp-abap-adt doctor
 ```
 
 Reachability is probed without authentication, so running it never touches a failed-logon counter. Add `--login` for exactly one real logon attempt per system when you want the password itself verified. Inside a chat, `ListSystems` answers the configuration half of the same questions.
+
+**The client says the server could not be started** — the client cannot find the `mcp-abap-adt` command. On Windows, Claude Desktop finds globally installed npm commands; if another client does not, use the full path instead: the folder that `npm prefix -g` prints, plus `\mcp-abap-adt.cmd`. Or switch that client to `npx`.
 
 **"TLS certificate verification failed"** — on a company network the certificate is usually fine: the server loads the operating system's trust store automatically, so what your browser trusts, it trusts. `doctor` tells the two cases apart. If the certificate genuinely cannot be validated (a self-signed sandbox), `"allowSelfSigned": true` on that system — or an [override entry](#adjusting-an-imported-system) for an imported one — switches verification off there. Mechanics, older-Node fallback and the opt-out live in [docs/security.md](docs/security.md#tls-and-the-trust-stores).
 
@@ -428,10 +365,11 @@ Reachability is probed without authentication, so running it never touches a fai
 
 **Nothing works and you want to poke at it directly** — set `MCP_ABAP_ADT_DEBUG=1` to trace every ADT call with status and duration, on stderr and as MCP log notifications; credentials, cookies and query bodies are never logged. Tracing details and how to drive the server with the MCP Inspector: [docs/debugging.md](docs/debugging.md).
 
-## 8. Further reading
+## 9. Further reading
 
-- **[Shared configuration](docs/shared-configuration.md)** — the user-level rc file, and team onboarding with `setup --from`.
-- **[Security model](docs/security.md)** — why this server cannot write, the TLS trust-store mechanics, OAuth, and how logon attempts are kept away from SAP lock counters.
+- **[Configuration in depth](docs/configuration.md)** — every setting without a file, precedence, the user-level rc file, and team onboarding with `setup --from`.
+- **[The tools in detail](docs/tools.md)** — the ABAP SQL dialect, and how the syntax, where-used and ATC tools interpret SAP's answers.
+- **[Security model](docs/security.md)** — why this server cannot write, the TLS trust-store mechanics, the install trade-off, OAuth, and how logon attempts are kept away from SAP lock counters.
 - **[Debugging](docs/debugging.md)** — tracing every ADT call, and driving the server with the MCP Inspector.
 - **[Migrating from mario-andreschak/mcp-abap-adt](docs/migration.md)** — what changes for a 1.x setup, what can break, and the one-line minimum change. All 16 original tools keep their names and arguments.
 - **[Contributing](CONTRIBUTING.md)** — the build, test and release commands, and why a few tooling choices are the way they are.
