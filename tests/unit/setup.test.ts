@@ -100,6 +100,42 @@ describe('setup --from', () => {
     expect(existsSync(join(rcDir, '.mcp-abap-adtrc.bak'))).toBe(true);
   });
 
+  it('stores the password for the connection that will actually be used, not the one in the team file', async () => {
+    // Local settings win the merge, so the effective dev system points at the
+    // local url and client. The keychain entry is keyed by exactly those; one
+    // written for the team file's url would leave the real connection without
+    // a password while setup reports success.
+    await writeFile(teamFile, JSON.stringify(TEAM), 'utf8');
+    await writeFile(
+      join(rcDir, '.mcp-abap-adtrc'),
+      'systems.dev.url="https://local.example.com"\nsystems.dev.client="200"\n',
+      'utf8',
+    );
+    const { backend, store } = fakeBackend();
+    const { io, out } = scriptedIo({ line: ['someone'], secret: ['pw'], yesNo: [true] });
+
+    const code = await setup({ from: teamFile }, { io, backend, rcDir });
+
+    expect(code).toBe(0);
+    expect(store.has('https://local.example.com/200')).toBe(true);
+    expect(store.has('https://dev.example.com/100')).toBe(false);
+    expect(store.has('https://qas.example.com/200')).toBe(true);
+    expect(out()).toContain('https://local.example.com/200');
+  });
+
+  it('leaves a system alone whose local entry already names a password source', async () => {
+    await writeFile(teamFile, JSON.stringify(TEAM), 'utf8');
+    await writeFile(join(rcDir, '.mcp-abap-adtrc'), 'systems.dev.passwordEnv="SAP_DEV_PASSWORD"\n', 'utf8');
+    const { backend, store } = fakeBackend();
+    const { io } = scriptedIo({ line: ['someone'], secret: ['pw'], yesNo: [true] });
+
+    const code = await setup({ from: teamFile }, { io, backend, rcDir });
+
+    expect(code).toBe(0);
+    expect(store.has('https://dev.example.com/100')).toBe(false);
+    expect(store.has('https://qas.example.com/200')).toBe(true);
+  });
+
   it('refuses anything that is not data', async () => {
     const tsFile = join(workDir, 'team.ts');
     await writeFile(tsFile, 'export default {}', 'utf8');

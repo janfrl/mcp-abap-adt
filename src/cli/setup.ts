@@ -172,7 +172,29 @@ export async function setup(options: SetupOptions, deps: SetupDeps = {}): Promis
   }
 
   if (!options.skipCredentials) {
-    const targets = teamSystems.filter(([, system]) => system.keychain);
+    // Credentials belong to the systems as they will actually be used, which
+    // after the merge above may differ from the team file: a local override of
+    // url or client wins, and the keychain entry is keyed by exactly those. A
+    // system whose local entry already names a password source is left alone,
+    // since the keychain would never be consulted for it.
+    const mergedSystems = merged.systems as Record<string, unknown>;
+    const targets: Array<[string, ResolvedSystem]> = [];
+    const unusable: string[] = [];
+    for (const [name] of teamSystems) {
+      const effective = SystemConfigSchema.safeParse(mergedSystems[name]);
+      if (!effective.success) {
+        unusable.push(name);
+        continue;
+      }
+      if (effective.data.keychain && !effective.data.password && !effective.data.passwordEnv) {
+        targets.push([name, { ...effective.data, origin: 'config-file' }]);
+      }
+    }
+    if (unusable.length > 0) {
+      io.out(
+        `  not stored:          ${unusable.join(', ')} (the local entry is invalid after the merge; ListSystems names the problem)\n`,
+      );
+    }
     if (targets.length > 0) {
       const backend = deps.backend ?? (await loadKeychainBackend());
       const code = await storeBulk(targets, { username: options.username }, backend, io);
@@ -185,8 +207,8 @@ export async function setup(options: SetupOptions, deps: SetupDeps = {}): Promis
   }
 
   io.out(
-    '\nDone. Point your MCP client at: npx -y @janfr/mcp-abap-adt\n' +
-      'Check the result with:        npx -y @janfr/mcp-abap-adt doctor\n',
+    '\nDone. Point your MCP client at the command: mcp-abap-adt\n' +
+      'Check the result with:                       mcp-abap-adt doctor\n',
   );
   return 0;
 }
