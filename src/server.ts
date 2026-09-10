@@ -79,11 +79,19 @@ function defineTool<Shape extends z.ZodRawShape>(
   return { name, description, inputSchema, handler, leavesTrace: options.leavesTrace ?? false };
 }
 
-function annotationsFor(leavesTrace: boolean) {
-  return leavesTrace
-    ? { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
-    : { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
-}
+const READ_ONLY_ANNOTATIONS = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+};
+/** For a tool that leaves something on the SAP system: not read-only, and every call adds another entry. */
+const LEAVES_TRACE_ANNOTATIONS = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: false,
+};
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   defineTool(
@@ -329,7 +337,7 @@ export function createServer(registry: ConnectionRegistry): McpServer {
       {
         description: tool.description,
         inputSchema: { ...tool.inputSchema, ...systemArgument },
-        annotations: annotationsFor(tool.leavesTrace),
+        annotations: tool.leavesTrace ? LEAVES_TRACE_ANNOTATIONS : READ_ONLY_ANNOTATIONS,
       },
       async (args) => {
         const { system, ...rest } = (args ?? {}) as { system?: string };
@@ -350,7 +358,7 @@ export function createServer(registry: ConnectionRegistry): McpServer {
       description:
         'List the configured SAP systems, which one is the default, and any configuration problems. Returns no credentials.',
       inputSchema: {},
-      annotations: annotationsFor(false),
+      annotations: READ_ONLY_ANNOTATIONS,
     },
     async () => handleListSystems(registry),
   );
