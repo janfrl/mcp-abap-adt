@@ -35,9 +35,15 @@ One path, start to finish, for the common case: one or more systems, the passwor
 npm install -g @janfr/mcp-abap-adt
 ```
 
-**2. Tell it about your systems and store the password.** If your team gave you a systems file, use that one. Otherwise write it yourself: a file named `sap-systems.jsonc`, saved anywhere you like (your Downloads folder is fine — the next step copies what it needs), with your system in it:
+**2. Tell it about your systems and store the password.** Run
 
-```jsonc
+```bash
+mcp-abap-adt setup
+```
+
+and paste your systems as JSON when asked (edit the url and client; add more systems the same way), then press Enter:
+
+```json
 {
   "systems": {
     "dev": { "url": "https://dev.example.com:44300", "client": "100" }
@@ -45,15 +51,9 @@ npm install -g @janfr/mcp-abap-adt
 }
 ```
 
-Then run one command with the file's path and answer the username and password prompts once:
+It then asks once for username and password. The password goes into the OS keychain (the prompt does not echo it), and the systems go into a user-level settings file that every MCP client on this machine reads — so nothing below needs a path.
 
-```bash
-mcp-abap-adt setup --from C:\Users\you\Downloads\sap-systems.jsonc
-```
-
-(Dragging the file into the terminal window pastes its path. An https URL works in place of the path, see [docs/configuration.md](docs/configuration.md).)
-
-It stores the password in the OS keychain (the prompt does not echo it) and writes the systems to a user-level settings file that every MCP client on this machine reads — so nothing below needs a path. The systems file itself can be deleted afterwards, or kept for the next colleague.
+If your team keeps the systems in a file, pass it instead of pasting: `mcp-abap-adt setup --from <path or https URL>` ([details](docs/configuration.md#onboarding-a-whole-team-setup---from)).
 
 **3. Connect Claude Desktop.** Settings → Developer → Edit Config, add the entry, save, restart Claude Desktop:
 

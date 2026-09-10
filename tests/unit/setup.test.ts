@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { setup } from '../../src/cli/setup.js';
@@ -62,6 +63,15 @@ function fakeFetch(status: number, body = JSON.stringify(TEAM)) {
     return new Response(body, { status });
   };
   return { fetch, calls };
+}
+
+/** A stdin stand-in whose chunks arrive later, the way a paste does: setup must already be listening. */
+function terminal(chunks: string[], isTTY = true) {
+  const stream = Object.assign(new PassThrough(), { isTTY });
+  setTimeout(() => {
+    for (const chunk of chunks) stream.write(chunk);
+  }, 0);
+  return stream;
 }
 
 describe('setup --from', () => {
@@ -220,6 +230,75 @@ describe('setup --from', () => {
     });
   });
 
+  describe('pasted into the terminal', () => {
+    it('reads the object up to its closing brace and continues like a file', async () => {
+      const stdin = terminal([
+        '{\n  "systems": {\n',
+        '    "dev": { "url": "https://dev.example.com", "client": "100" }\n',
+        '  }\n}\n',
+      ]);
+      const { backend, store } = fakeBackend();
+      const { io, out } = scriptedIo({ line: ['someone'], secret: ['pw'], yesNo: [true] });
+
+      const code = await setup({}, { io, backend, rcDir, stdin });
+
+      expect(code).toBe(0);
+      expect(out()).toContain('Paste the systems JSON');
+      expect(out()).toContain('systems from:        pasted input');
+      expect(await readFile(join(rcDir, '.mcp-abap-adtrc'), 'utf8')).toContain(
+        'systems.dev.url="https://dev.example.com"',
+      );
+      expect(store.has('https://dev.example.com/100')).toBe(true);
+    });
+
+    it('ignores braces inside strings and comments', async () => {
+      const stdin = terminal([
+        '{ // a } in a comment\n',
+        '  "systems": { "dev": { "url": "https://dev.example.com/}", "client": "100" } }\n}\n',
+      ]);
+      const { io } = scriptedIo();
+
+      const code = await setup({ skipCredentials: true }, { io, backend: fakeBackend().backend, rcDir, stdin });
+
+      expect(code).toBe(0);
+      expect(await readFile(join(rcDir, '.mcp-abap-adtrc'), 'utf8')).toContain('https://dev.example.com/}');
+    });
+
+    it('works from a pipe when credentials are skipped', async () => {
+      const stdin = terminal([JSON.stringify(TEAM)], false);
+      setTimeout(() => stdin.end(), 5);
+      const { io } = scriptedIo();
+
+      const code = await setup({ skipCredentials: true }, { io, backend: fakeBackend().backend, rcDir, stdin });
+
+      expect(code).toBe(0);
+      expect(existsSync(join(rcDir, '.mcp-abap-adtrc'))).toBe(true);
+    });
+
+    it('refuses a pipe that would also have to answer the password prompts', async () => {
+      const stdin = terminal([JSON.stringify(TEAM)], false);
+      const { io, err } = scriptedIo();
+
+      const code = await setup({}, { io, backend: fakeBackend().backend, rcDir, stdin });
+
+      expect(code).toBe(2);
+      expect(err()).toContain('--skip-credentials');
+      expect(err()).toContain('--from');
+    });
+
+    it('reports input that ends before the object is complete', async () => {
+      const stdin = terminal(['{ "systems": {'], false);
+      setTimeout(() => stdin.end(), 5);
+      const { io, err } = scriptedIo();
+
+      const code = await setup({ skipCredentials: true }, { io, backend: fakeBackend().backend, rcDir, stdin });
+
+      expect(code).toBe(2);
+      expect(err()).toContain('before the JSON object was complete');
+      expect(existsSync(join(rcDir, '.mcp-abap-adtrc'))).toBe(false);
+    });
+  });
+
   it('refuses anything that is not data', async () => {
     const tsFile = join(workDir, 'team.ts');
     await writeFile(tsFile, 'export default {}', 'utf8');
@@ -319,13 +398,14 @@ describe('setup --from', () => {
     expect(await readFile(join(rcDir, '.mcp-abap-adtrc'), 'utf8')).toContain('importFioriSystems=true');
   });
 
-  it('explains itself without --from', async () => {
+  it('explains itself when there is neither --from nor a terminal to paste into', async () => {
     const { io, err } = scriptedIo();
 
-    const code = await setup({}, { io, backend: fakeBackend().backend, rcDir });
+    const code = await setup({}, { io, backend: fakeBackend().backend, rcDir, stdin: terminal([], false) });
 
     expect(code).toBe(2);
     expect(err()).toContain('Usage:');
-    expect(err()).toContain('no secrets');
+    expect(err()).toContain('--from');
+    expect(err()).toContain('--skip-credentials');
   });
 });

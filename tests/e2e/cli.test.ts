@@ -66,11 +66,13 @@ describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout:
     expect(output).toContain('finding');
   });
 
-  it('setup without --from prints usage and exits with 2', async () => {
+  it('setup on an empty pipe prints usage and exits with 2', async () => {
+    // execFile hands the child a pipe, not a terminal, so the paste route
+    // refuses (the password prompts would read the same pipe) and explains itself.
     const { code, output } = await runCli(['setup']);
 
     expect(code).toBe(2);
-    expect(output).toContain('Usage: mcp-abap-adt setup --from');
+    expect(output).toContain('Usage: mcp-abap-adt setup [--from');
   });
 
   it('store-credentials without arguments prints usage naming the bulk mode', async () => {

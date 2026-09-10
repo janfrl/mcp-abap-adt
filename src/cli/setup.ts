@@ -2,6 +2,7 @@ import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { extname, join, resolve } from 'node:path';
+import type { Readable } from 'node:stream';
 import { loadConfig } from 'c12';
 import { defu } from 'defu';
 import { parse as parseRc, serialize as serializeRc } from 'rc9';
@@ -12,7 +13,7 @@ import { AppConfigFileSchema, SystemConfigSchema, type ResolvedSystem } from '..
 import { defaultIo, storeBulk, type CliDeps, type CliIo } from './storeCredentials.js';
 
 export interface SetupOptions {
-  /** Path or https URL of the shared team list (.json or .jsonc). */
+  /** Path or https URL of the shared team list (.json or .jsonc). Without it, the JSON is read from stdin. */
   from?: string;
   username?: string;
   skipCredentials?: boolean;
@@ -23,6 +24,106 @@ export interface SetupDeps extends CliDeps {
   rcDir?: string;
   fetch?: typeof globalThis.fetch;
   env?: NodeJS.ProcessEnv;
+  stdin?: Readable & { isTTY?: boolean };
+}
+
+/**
+ * Finds where a pasted JSON object ends, so the user only has to press Enter
+ * after it: braces inside strings and comments do not count.
+ */
+class JsonEndScanner {
+  #depth = 0;
+  #started = false;
+  #state: 'code' | 'string' | 'line-comment' | 'block-comment' = 'code';
+  #escaped = false;
+  #previous = '';
+
+  /** Returns the index in `chunk` at which the top-level object closes, or -1. */
+  feed(chunk: string): number {
+    for (let i = 0; i < chunk.length; i++) {
+      const char = chunk[i];
+      switch (this.#state) {
+        case 'string':
+          if (this.#escaped) this.#escaped = false;
+          else if (char === '\\') this.#escaped = true;
+          else if (char === '"') this.#state = 'code';
+          break;
+        case 'line-comment':
+          if (char === '\n') this.#state = 'code';
+          break;
+        case 'block-comment':
+          if (char === '/' && this.#previous === '*') this.#state = 'code';
+          break;
+        default:
+          if (char === '"') this.#state = 'string';
+          else if (char === '/' && chunk[i + 1] === '/') this.#state = 'line-comment';
+          else if (char === '/' && chunk[i + 1] === '*') this.#state = 'block-comment';
+          else if (char === '{') {
+            this.#depth += 1;
+            this.#started = true;
+          } else if (char === '}') {
+            this.#depth -= 1;
+            if (this.#started && this.#depth === 0) return i;
+          }
+      }
+      this.#previous = char;
+    }
+    return -1;
+  }
+}
+
+/** Resolves with the pasted object, or undefined when the stream ends before it is complete. */
+function readPastedJson(stream: Readable): Promise<string | undefined> {
+  return new Promise((settle) => {
+    const scanner = new JsonEndScanner();
+    let text = '';
+    const done = (value: string | undefined) => {
+      stream.off('data', onData);
+      stream.off('end', onEnd);
+      stream.pause();
+      settle(value);
+    };
+    const onData = (chunk: string | Buffer) => {
+      const piece = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
+      const end = scanner.feed(piece);
+      text += end >= 0 ? piece.slice(0, end + 1) : piece;
+      if (end >= 0 || text.length > MAX_TEAM_FILE_BYTES) done(end >= 0 ? text : undefined);
+    };
+    const onEnd = () => done(undefined);
+    stream.on('data', onData);
+    stream.on('end', onEnd);
+    stream.resume();
+  });
+}
+
+/** The paste route: `setup` with nothing else reads the object from the terminal, or from a pipe. */
+async function readTeamFileFromStdin(
+  options: SetupOptions,
+  deps: SetupDeps,
+  io: CliIo,
+): Promise<TeamFileSource | number> {
+  const stdin = deps.stdin ?? process.stdin;
+  if (stdin.isTTY) {
+    io.out('Paste the systems JSON (the same object a config file holds), then press Enter:\n');
+  } else if (!options.skipCredentials) {
+    // The prompts for username and password would read from the same pipe.
+    io.err(
+      'Usage: mcp-abap-adt setup [--from <path or https URL>] [--username <user>] [--skip-credentials]\n' +
+        'Without --from, the systems JSON is read from the terminal. From a pipe, add --skip-credentials and ' +
+        'run store-credentials --all afterwards.\n',
+    );
+    return 2;
+  }
+
+  const text = await readPastedJson(stdin);
+  if (text === undefined) {
+    io.err('The input ended before the JSON object was complete; nothing was written.\n');
+    return 2;
+  }
+  const dir = await mkdtemp(join(tmpdir(), 'mcp-abap-adt-setup-'));
+  const file = join(dir, 'team-systems.jsonc');
+  await writeFile(file, text, 'utf8');
+  return { file, cleanup: () => rm(dir, { recursive: true, force: true }) };
 }
 
 /** The same resolution rc9 uses when c12 reads the file back. */
@@ -118,24 +219,24 @@ async function resolveTeamFile(from: string, deps: SetupDeps, io: CliIo): Promis
 export async function setup(options: SetupOptions, deps: SetupDeps = {}): Promise<number> {
   const io = deps.io ?? defaultIo;
 
-  if (!options.from) {
-    io.err(
-      'Usage: mcp-abap-adt setup --from <path or https URL of the shared systems file> [--username <user>] [--skip-credentials]\n' +
-        'The file holds the same object a config file does ("systems", optional "defaultSystem") and no secrets.\n',
-    );
-    return 2;
-  }
-
-  const source = await resolveTeamFile(options.from, deps, io);
+  const source = options.from
+    ? await resolveTeamFile(options.from, deps, io)
+    : await readTeamFileFromStdin(options, deps, io);
   if (typeof source === 'number') return source;
   try {
-    return await setupFromFile(source.file, options, deps, io);
+    return await setupFromFile(source.file, options.from ?? 'pasted input', options, deps, io);
   } finally {
     await source.cleanup?.();
   }
 }
 
-async function setupFromFile(from: string, options: SetupOptions, deps: SetupDeps, io: CliIo): Promise<number> {
+async function setupFromFile(
+  from: string,
+  label: string,
+  options: SetupOptions,
+  deps: SetupDeps,
+  io: CliIo,
+): Promise<number> {
   const loaded = await loadConfig({
     configFile: from,
     rcFile: false,
@@ -239,7 +340,7 @@ async function setupFromFile(from: string, options: SetupOptions, deps: SetupDep
   const kept = teamSystems.filter(([name]) => existingSystems.has(name)).map(([name]) => name);
   io.out(`Wrote ${rcPath}${hadRc ? ` (previous version in ${rcPath}.bak)` : ''}.\n`);
   // Named back so a wrong URL, and with it a wrong destination for passwords, is visible.
-  io.out(`  systems from:        ${options.from}\n`);
+  io.out(`  systems from:        ${label}\n`);
   if (added.length > 0) io.out(`  added:               ${added.join(', ')}\n`);
   if (kept.length > 0) io.out(`  kept local settings: ${kept.join(', ')}\n`);
   if (keychainDefaulted.length > 0) {

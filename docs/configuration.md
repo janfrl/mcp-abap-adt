@@ -76,6 +76,8 @@ mcp-abap-adt setup --from ./sap-systems.jsonc
 mcp-abap-adt setup --from https://raw.githubusercontent.com/your-org/sap-mcp-setup/main/sap-systems.jsonc
 ```
 
+Without `--from`, `setup` reads the JSON from the terminal: paste it, press Enter, done — it recognises where the object ends, so no end marker is needed. The same works from a pipe (`curl … | mcp-abap-adt setup --skip-credentials`), where the password prompts cannot run, so credentials are stored afterwards with `store-credentials --all`.
+
 A URL is downloaded and then treated exactly like a local file; plain http is refused, since the systems in the file are where passwords get sent. For a file in a private GitHub repository, a token in `GITHUB_TOKEN` or `GH_TOKEN` (the variables the gh CLI uses) is sent along; without one, clone the repository and pass the path. The summary names where the systems came from, so a wrong URL is visible.
 
 It folds the list into the user-level rc file (local settings win; the previous file is kept as `.bak`), asks once for username and password, and stores a keychain entry per system — after which both this server and the SAP Fiori tools extension work. `--skip-credentials` writes only the configuration; `--username <user>` skips the username question.
