@@ -34,5 +34,5 @@ jobs:
         if: '!cancelled()'
       - run: npm run fmt:check
         if: '!cancelled()'
-      - run: npm pack --dry-run
+      - run: npm run check:package
         if: '!cancelled()'
