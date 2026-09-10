@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { loadAppConfig } from '../../src/config/load.js';
 import { fioriKeychainId } from '../../src/config/fiori.js';
+import { setLogSink } from '../../src/lib/log.js';
 
 let workDir: string;
 let homeDir: string;
@@ -613,5 +614,48 @@ describe('fioriKeychainId', () => {
     expect(fioriKeychainId('https://sap.example.com:44300', '100')).toBe('https://sap.example.com:44300/100');
     expect(fioriKeychainId('https://sap.example.com:44300/', '100')).toBe('https://sap.example.com:44300/100');
     expect(fioriKeychainId('  https://sap.example.com  ')).toBe('https://sap.example.com');
+  });
+});
+
+describe('plain http warning', () => {
+  const warnings: string[] = [];
+  const httpWarnings = () => warnings.filter((message) => message.includes('plain http'));
+
+  beforeEach(() => {
+    warnings.length = 0;
+    setLogSink((level, message) => {
+      if (level === 'warning') warnings.push(message);
+    });
+  });
+
+  afterEach(() => setLogSink(undefined));
+
+  it('warns once for an http system in the configuration', async () => {
+    await load({
+      MCP_ABAP_ADT_CONFIG_JSON: JSON.stringify({ systems: { trial: { url: 'http://trial.example.com:50000' } } }),
+    });
+
+    expect(httpWarnings()).toHaveLength(1);
+    expect(httpWarnings()[0]).toContain('"trial"');
+  });
+
+  it('warns for an http system imported from SAP Fiori tools', async () => {
+    await writeFioriStore('.saptools', { a: { name: 'TRIAL', url: 'http://trial.example.com:50000', client: '001' } });
+
+    await load({ SAP_IMPORT_FIORI_SYSTEMS: 'true' });
+
+    expect(httpWarnings()).toHaveLength(1);
+  });
+
+  it('warns for an http system built from the SAP_* variables', async () => {
+    await load({ ...ENV_COMPLETE, SAP_URL: 'http://sap.example.com:50000' });
+
+    expect(httpWarnings()).toHaveLength(1);
+  });
+
+  it('stays quiet for https', async () => {
+    await load(ENV_COMPLETE);
+
+    expect(httpWarnings()).toHaveLength(0);
   });
 });

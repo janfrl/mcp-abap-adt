@@ -199,15 +199,19 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         `system "${name}" has a plaintext password in the configuration file. Prefer "passwordEnv" or "keychain": true.`,
       );
     }
-    // Allowed, because local trial systems speak plain http; but said once.
-    if (parsed.data.url.startsWith('http:')) {
-      logWarn(`system "${name}" uses plain http, so its password travels unencrypted. Fine for a local sandbox only.`);
-    }
   }
 
   for (const [name, system] of imported) systems.set(name, system);
 
   applyEnvFallback({ env, systems, errors, sources });
+
+  // Over the final set, so imported and SAP_* systems are covered too.
+  // Allowed, because local trial systems speak plain http; but said once.
+  for (const [name, system] of systems) {
+    if (system.url.startsWith('http:')) {
+      logWarn(`system "${name}" uses plain http, so its password travels unencrypted. Fine for a local sandbox only.`);
+    }
+  }
 
   const defaultSystem = resolveDefaultSystem(app.defaultSystem, systems, errors);
 
