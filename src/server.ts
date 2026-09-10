@@ -79,8 +79,8 @@ function defineTool<Shape extends z.ZodRawShape>(
   return { name, description, inputSchema, handler, leavesTrace: options.leavesTrace ?? false };
 }
 
-function annotationsFor(tool: ToolDefinition) {
-  return tool.leavesTrace
+function annotationsFor(leavesTrace: boolean) {
+  return leavesTrace
     ? { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
     : { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 }
@@ -329,7 +329,7 @@ export function createServer(registry: ConnectionRegistry): McpServer {
       {
         description: tool.description,
         inputSchema: { ...tool.inputSchema, ...systemArgument },
-        annotations: annotationsFor(tool),
+        annotations: annotationsFor(tool.leavesTrace),
       },
       async (args) => {
         const { system, ...rest } = (args ?? {}) as { system?: string };
@@ -350,6 +350,7 @@ export function createServer(registry: ConnectionRegistry): McpServer {
       description:
         'List the configured SAP systems, which one is the default, and any configuration problems. Returns no credentials.',
       inputSchema: {},
+      annotations: annotationsFor(false),
     },
     async () => handleListSystems(registry),
   );

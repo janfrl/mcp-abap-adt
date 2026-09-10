@@ -42,6 +42,18 @@ describe('tool surface', () => {
     expect(tools).toHaveLength(22);
   });
 
+  it('annotates every tool, ListSystems included, with only the ATC tool leaving a trace', async () => {
+    const client = await connectClient(singleSystem);
+
+    const { tools } = await client.listTools();
+
+    for (const tool of tools) {
+      expect(tool.annotations, tool.name).toBeDefined();
+      expect(tool.annotations?.readOnlyHint, tool.name).toBe(tool.name !== 'GetAtcFindings');
+      expect(tool.annotations?.destructiveHint, tool.name).toBe(false);
+    }
+  });
+
   it('keeps the original tool names and required arguments', async () => {
     const client = await connectClient(singleSystem);
 
