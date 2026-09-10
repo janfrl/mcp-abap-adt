@@ -15,7 +15,7 @@ export interface DataPreviewResult {
 }
 
 /** xml-js compact mode collapses a single child to an object rather than an array. */
-function asArray<T>(value: T | T[] | undefined): T[] {
+export function asArray<T>(value: T | T[] | undefined): T[] {
   if (value === undefined) return [];
   return Array.isArray(value) ? value : [value];
 }

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { HERMETIC_HOME } from '../setup/hermeticHome.js';
+import { HERMETIC_CHILD_ENV } from '../setup/hermeticHome.js';
 
 const run = promisify(execFile);
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -27,20 +27,19 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await rm(workDir, { recursive: true, force: true });
+  // Windows holds a directory open a moment longer than the process that used
+  // it, so a plain rm here reports EBUSY - and does it *after* the real
+  // failure, burying it under a cleanup error. Retrying keeps the reported
+  // failure the one that matters.
+  await rm(workDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 
 async function runCli(args: string[]) {
   try {
     const { stdout, stderr } = await run(process.execPath, [entryPoint, ...args], {
       cwd: workDir,
-      env: {
-        PATH: process.env.PATH ?? '',
-        SystemRoot: process.env.SystemRoot ?? '',
-        HOME: HERMETIC_HOME,
-        USERPROFILE: HERMETIC_HOME,
-        XDG_CONFIG_HOME: HERMETIC_HOME,
-      },
+      // See HERMETIC_CHILD_ENV for what each entry is holding back.
+      env: { ...HERMETIC_CHILD_ENV },
       timeout: 30_000,
     });
     return { code: 0, output: stdout + stderr };
@@ -50,7 +49,15 @@ async function runCli(args: string[]) {
   }
 }
 
-describe.skipIf(!built)('CLI dispatch through the built entry point', () => {
+/**
+ * A test timeout has to be looser than the budget the test itself hands out,
+ * or the assertion never gets to run: runCli allows the child 30 s, while
+ * vitest defaults to 5 s. Spawning node and loading the built server is
+ * normally under two seconds, but on a loaded machine it is not, and the
+ * failure then reads "test timed out" plus an EBUSY from the cleanup - neither
+ * of which says anything about the CLI.
+ */
+describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout: 60_000 }, () => {
   it('doctor reports an empty configuration readably and exits with 1', async () => {
     const { code, output } = await runCli(['doctor']);
 
