@@ -132,6 +132,7 @@ export async function doctor(options: DoctorOptions = {}, deps: DoctorDeps = {})
   })();
 
   let sawTlsFailure = false;
+  let sawMissingSource = false;
 
   const rows = await Promise.all(
     listed.map(async (entry) => {
@@ -141,6 +142,14 @@ export async function doctor(options: DoctorOptions = {}, deps: DoctorDeps = {})
       // read can cost an out-of-process call, so it overlaps the handshake.
       const [credentialStatus, reach] = await Promise.all([
         (async (): Promise<string> => {
+          if (entry.credentialSource === 'none') {
+            // A system with no password source cannot log on at all. That is
+            // a finding in its own right, login probe or not: "skipped" used
+            // to let such a system end in "Everything checks out".
+            findings += 1;
+            sawMissingSource = true;
+            return 'NONE';
+          }
           if (entry.credentialSource !== 'keychain') return entry.credentialSource;
           if (!backend) {
             findings += 1;
@@ -200,6 +209,12 @@ export async function doctor(options: DoctorOptions = {}, deps: DoctorDeps = {})
             'A certificate from your company CA then fails even though it is fine.\n' +
             'On older Node, put "NODE_USE_SYSTEM_CA": "1" into the env block of every MCP client.\n' +
             '"allowSelfSigned": true is the last resort, since it switches verification off.\n',
+    );
+  }
+  if (sawMissingSource) {
+    io.out(
+      '\nA system with credentials NONE cannot log on: add "keychain": true to it and run store-credentials,\n' +
+        'or name an environment variable in "passwordEnv".\n',
     );
   }
   if (backendError) io.out(`\nKeychain: ${backendError}\n`);

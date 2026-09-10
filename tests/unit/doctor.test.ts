@@ -146,8 +146,12 @@ describe('doctor', () => {
 
     const code = await doctor({ configFile, login: true }, { io, probeFetch: reachable, loginFetch: counting });
 
-    expect(code).toBe(0);
+    // Not attempted, and not "everything checks out" either: a system that
+    // can never log on is a finding, whether or not --login was asked for.
+    expect(code).toBe(1);
     expect(text()).toContain('skipped (no credentials)');
+    expect(text()).toContain('cannot log on');
+    expect(text()).not.toContain('Everything checks out');
     expect(loginAttempts).toBe(0);
   });
 
