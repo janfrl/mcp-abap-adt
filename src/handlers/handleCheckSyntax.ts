@@ -24,9 +24,20 @@ interface CheckMessage {
  * chkrun:checkMessage carries its position folded into the uri attribute as
  * "...#start=line,offset" rather than as separate line/offset attributes.
  */
-function parseCheckMessages(xml: string): CheckMessage[] {
-  const parsed = convert.xml2js(xml, { compact: true }) as any;
-  const reports = asArray(parsed?.['chkrun:checkRunReports']?.['chkrun:checkReport']);
+function parseCheckMessages(xml: string): CheckMessage[] | undefined {
+  let parsed: any;
+  try {
+    parsed = convert.xml2js(xml, { compact: true });
+  } catch {
+    return undefined;
+  }
+  // No check-run root means SAP answered with something else entirely - an
+  // HTML page with status 200 parses just fine as XML, for instance. That must
+  // never read as "no messages": for a tool whose answer a model treats as
+  // proof, an answer it could not interpret has to say so.
+  const runReports = parsed?.['chkrun:checkRunReports'];
+  if (!runReports) return undefined;
+  const reports = asArray(runReports['chkrun:checkReport']);
 
   return reports
     .flatMap((report: any) => asArray(report?.['chkrun:checkMessageList']?.['chkrun:checkMessage']))
@@ -81,7 +92,14 @@ export async function handleCheckSyntax(
       body,
       headers: { 'Content-Type': 'application/*', Accept: 'application/*' },
     });
-    return return_text(formatCheckMessages(parseCheckMessages(response.data)));
+    const messages = parseCheckMessages(response.data);
+    if (!messages) {
+      throw new Error(
+        `System "${connection.name}" did not answer with a check-run report, so the source was NOT verified. ` +
+          `The answer began: ${response.data.slice(0, 200).replaceAll(/\s+/gu, ' ')}`,
+      );
+    }
+    return return_text(formatCheckMessages(messages));
   } catch (error) {
     return return_error(error);
   }

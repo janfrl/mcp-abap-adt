@@ -413,6 +413,33 @@ describe('CheckSyntax', () => {
 
     expect(textOf(result)).toBe('[E] line 3, col 7: Field "LV_FOO" is unknown.');
   });
+
+  it('refuses to call an answer without a check-run report a clean check', async () => {
+    // An HTML page with status 200 parses as XML; it must not read as "no errors".
+    const { result } = await callHandler(
+      (c) => handleCheckSyntax(c, { object_type: 'program', object_name: 'ZFOO', source: 'REPORT zfoo.' }),
+      () => ({ body: '<html><body>Logon</body></html>' }),
+    );
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('NOT verified');
+    expect(textOf(result)).not.toContain('No syntax errors');
+  });
+
+  it('still reports a clean check for a report that carries no messages', async () => {
+    const { result } = await callHandler(
+      (c) => handleCheckSyntax(c, { object_type: 'program', object_name: 'ZFOO', source: 'REPORT zfoo.' }),
+      () => ({
+        body:
+          '<chkrun:checkRunReports xmlns:chkrun="http://www.sap.com/adt/checkrun">' +
+          '<chkrun:checkReport chkrun:status="processed"><chkrun:checkMessageList/></chkrun:checkReport>' +
+          '</chkrun:checkRunReports>',
+      }),
+    );
+
+    expect(result.isError).toBe(false);
+    expect(textOf(result)).toBe('No syntax errors or warnings found.');
+  });
 });
 
 describe('GetWhereUsed', () => {
