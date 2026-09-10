@@ -99,6 +99,20 @@ npm run build
 
 Then point your client at `node` with the absolute path to `dist/index.js`.
 
+### The command line
+
+Without a command, `mcp-abap-adt` starts the MCP server, which is how clients run it. With one, it is a setup tool:
+
+| Command | Purpose |
+| --- | --- |
+| `setup [--from <path or https URL>]` | Take over a shared systems list, or paste one, and store the password |
+| `add [<name>]` | Add one system, asking for whatever is not given as `--url`, `--client`, `--language` |
+| `remove <name>` | Remove one system from the user-level settings |
+| `default [<name>]` | Show or set the system used when a call names none |
+| `store-credentials --system <name>` | Store a password in the OS keychain; `--all` for every system at once |
+| `doctor [--login]` | Check configuration, keychain and reachability; `--login` tries one logon per system |
+| `version`, `help` | The installed version; this list |
+
 ## 4. Configuring SAP systems
 
 Two routes cover most setups. Both can be combined, and a system's settings can be adjusted from a second route without repeating the whole entry — [docs/configuration.md](docs/configuration.md) has the details, the file-free variants and the precedence rules.
@@ -190,7 +204,7 @@ mcp-abap-adt add QAS200 --url https://qas.example.com:44300 --client 200   # fie
 mcp-abap-adt remove QAS200
 ```
 
-`remove` takes the system out of the rc file and leaves the keychain entry alone, since the SAP Fiori tools extension may share it. Systems imported from SAP Fiori tools are managed there.
+`remove` takes the system out of the rc file and leaves the keychain entry alone, since the SAP Fiori tools extension may share it. Systems imported from SAP Fiori tools are managed there. `default <name>` picks the system a call uses when it names none; without a name it shows the current one.
 
 ### Adjusting an imported system
 

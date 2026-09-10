@@ -10,6 +10,7 @@ import type { ConfigError, ResolvedAppConfig } from './config/schema.js';
 import { ConnectionRegistry } from './connection/registry.js';
 import { logWarn } from './lib/log.js';
 import { createServer } from './server.js';
+import { SERVER_VERSION } from './version.js';
 
 /**
  * Earlier versions read a .env file sitting next to the installed package.
@@ -69,8 +70,10 @@ Commands:
   setup [--from <path or https URL>]   Take over a shared systems list (or paste it), store the password
   add [<name>] [--url ...]             Add one system, asking for what is missing
   remove <name>                        Remove one system from the user-level rc file
+  default [<name>]                     Show or set the system used when a call names none
   store-credentials --system <name>    Store a password in the OS keychain (--all for every system)
   doctor [--login]                     Check configuration, keychain and reachability
+  version                              Print the installed version
   help                                 This text
 `;
 
@@ -94,6 +97,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       client: { type: 'string' },
       language: { type: 'string' },
       help: { type: 'boolean' },
+      version: { type: 'boolean' },
     },
     allowPositionals: true,
     strict: false,
@@ -150,8 +154,18 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     return;
   }
 
+  if (positionals[0] === 'default') {
+    const { setDefaultSystem } = await import('./cli/systems.js');
+    process.exitCode = await setDefaultSystem({ name: positionals[1], configFile });
+    return;
+  }
+
   if (positionals[0] === 'help' || values.help === true) {
     process.stdout.write(USAGE);
+    return;
+  }
+  if (positionals[0] === 'version' || values.version === true) {
+    process.stdout.write(`${SERVER_VERSION}\n`);
     return;
   }
   if (positionals.length > 0) {

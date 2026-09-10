@@ -1,5 +1,5 @@
 import { loadKeychainBackend } from '../auth/providers/keychain.js';
-import { formatIssues } from '../config/load.js';
+import { formatIssues, loadAppConfig } from '../config/load.js';
 import { SystemConfigSchema } from '../config/schema.js';
 import { defaultRcDir, isRcSafeName, rcPathIn, rcSystems, readRc, writeRc } from './rcFile.js';
 import { defaultIo, storeBulk, type CliDeps, type CliIo } from './storeCredentials.js';
@@ -15,6 +15,12 @@ export interface AddSystemOptions {
 
 export interface RemoveSystemOptions {
   name?: string;
+}
+
+export interface DefaultSystemOptions {
+  /** Without it, the current default and the known systems are shown. */
+  name?: string;
+  configFile?: string;
 }
 
 export interface SystemsDeps extends CliDeps {
@@ -92,6 +98,41 @@ export async function addSystem(options: AddSystemOptions, deps: SystemsDeps = {
   }
 
   io.out('\nDone. Restart your MCP clients to pick up the system; check with: mcp-abap-adt doctor\n');
+  return 0;
+}
+
+/**
+ * The default is validated against every configured system, imported ones
+ * included, since the rc file alone does not know what the server will see.
+ */
+export async function setDefaultSystem(options: DefaultSystemOptions, deps: SystemsDeps = {}): Promise<number> {
+  const io = deps.io ?? defaultIo;
+  const rcDir = deps.rcDir ?? defaultRcDir();
+  // With an injected rcDir (tests) the lookup stays inside it; otherwise it is the ambient one the server uses.
+  const config = await loadAppConfig(
+    deps.rcDir
+      ? { configFile: options.configFile, homeDir: rcDir, cwd: rcDir, env: {} }
+      : { configFile: options.configFile },
+  );
+  const known = [...config.systems.keys()];
+
+  if (!options.name) {
+    io.out(
+      `${config.defaultSystem ? `Default system: ${config.defaultSystem}` : 'No default system is set.'}\n` +
+        `Configured systems: ${known.join(', ') || '(none)'}\n` +
+        'Set one with: mcp-abap-adt default <name>\n',
+    );
+    return 0;
+  }
+  if (!known.includes(options.name)) {
+    io.err(`"${options.name}" is not a configured system. Configured systems: ${known.join(', ') || '(none)'}\n`);
+    return 2;
+  }
+
+  const rcPath = rcPathIn(rcDir);
+  const { config: rc, existed } = await readRc(rcPath);
+  await writeRc(rcPath, { ...rc, defaultSystem: options.name }, existed);
+  io.out(`Default system is now "${options.name}" (in ${rcPath}). Restart your MCP clients to pick it up.\n`);
   return 0;
 }
 

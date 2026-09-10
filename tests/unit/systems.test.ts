@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { CliIo } from '../../src/cli/storeCredentials.js';
-import { addSystem, removeSystem } from '../../src/cli/systems.js';
+import { addSystem, removeSystem, setDefaultSystem } from '../../src/cli/systems.js';
 
 let rcDir: string;
 let rcPath: string;
@@ -185,5 +185,41 @@ describe('remove', () => {
 
     expect(await removeSystem({}, { io, rcDir })).toBe(2);
     expect(err()).toContain('Usage: mcp-abap-adt remove');
+  });
+});
+
+describe('default', () => {
+  const TWO = `${EXISTING}systems.QAS200.url="https://qas.example.com"\nsystems.QAS200.keychain=true\n`;
+
+  it('shows the current default and the systems it could be', async () => {
+    await writeFile(rcPath, TWO, 'utf8');
+    const { io, out } = scriptedIo();
+
+    expect(await setDefaultSystem({}, { io, rcDir })).toBe(0);
+    expect(out()).toContain('Default system: DEV100');
+    expect(out()).toContain('DEV100, QAS200');
+  });
+
+  it('sets a configured system as the default and keeps the rest of the rc file', async () => {
+    await writeFile(rcPath, TWO, 'utf8');
+    const { io, out } = scriptedIo();
+
+    expect(await setDefaultSystem({ name: 'QAS200' }, { io, rcDir })).toBe(0);
+    const rc = await readFile(rcPath, 'utf8');
+    expect(rc).toContain('defaultSystem="QAS200"');
+    expect(rc).not.toContain('defaultSystem="DEV100"');
+    expect(rc).toContain('systems.DEV100.url="https://dev.example.com"');
+    expect(existsSync(`${rcPath}.bak`)).toBe(true);
+    expect(out()).toContain('now "QAS200"');
+  });
+
+  it('refuses a name that is not a configured system', async () => {
+    await writeFile(rcPath, TWO, 'utf8');
+    const { io, err } = scriptedIo();
+
+    expect(await setDefaultSystem({ name: 'NOPE' }, { io, rcDir })).toBe(2);
+    expect(err()).toContain('not a configured system');
+    expect(err()).toContain('DEV100, QAS200');
+    expect(await readFile(rcPath, 'utf8')).toBe(TWO);
   });
 });

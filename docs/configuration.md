@@ -58,7 +58,7 @@ Everything else — a config file in the working directory, the environment, the
 
 `mcp-abap-adt add` asks for name, URL, client and language (any of them can be given as `--name`, `--url`, `--client`, `--language`, or the name as the first argument), validates the entry, writes it into the rc file with `keychain: true`, and then asks once for username and password to fill the keychain entry; `--skip-credentials` leaves that step out. An existing system of the same name is only replaced after confirmation.
 
-`mcp-abap-adt remove <name>` takes the entry out of the rc file. The keychain entry stays, because the SAP Fiori tools extension may share it. Both commands keep the previous rc file as `.bak`. Systems that come from SAP Fiori tools are not in the rc file and are managed in the extension.
+`mcp-abap-adt default <name>` sets `defaultSystem` in the rc file after checking that the name is a configured system, imported ones included; without a name it shows the current default and the candidates. `mcp-abap-adt remove <name>` takes the entry out of the rc file. The keychain entry stays, because the SAP Fiori tools extension may share it. Both commands keep the previous rc file as `.bak`. Systems that come from SAP Fiori tools are not in the rc file and are managed in the extension.
 
 ## Onboarding a whole team: `setup --from`
 

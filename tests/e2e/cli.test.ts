@@ -83,6 +83,13 @@ describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout:
     expect(output).toContain('Commands:');
   });
 
+  it('prints the installed version', async () => {
+    const { code, output } = await runCli(['--version']);
+
+    expect(code).toBe(0);
+    expect(output.trim()).toMatch(/^\d+\.\d+\.\d+/u);
+  });
+
   it('prints the command list for help', async () => {
     const { code, output } = await runCli(['help']);
 
