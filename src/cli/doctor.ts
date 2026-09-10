@@ -143,9 +143,7 @@ export async function doctor(options: DoctorOptions = {}, deps: DoctorDeps = {})
       const [credentialStatus, reach] = await Promise.all([
         (async (): Promise<string> => {
           if (entry.credentialSource === 'none') {
-            // A system with no password source cannot log on at all. That is
-            // a finding in its own right, login probe or not: "skipped" used
-            // to let such a system end in "Everything checks out".
+            // Cannot log on at all: a finding, login probe or not.
             findings += 1;
             sawMissingSource = true;
             return 'NONE';

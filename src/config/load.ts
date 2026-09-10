@@ -199,9 +199,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
         `system "${name}" has a plaintext password in the configuration file. Prefer "passwordEnv" or "keychain": true.`,
       );
     }
-    // Not refused: local trial systems speak plain http, and refusing them
-    // would lock out exactly the people the quick start is written for. But
-    // the password travels in clear on such a connection, so it is said once.
+    // Allowed, because local trial systems speak plain http; but said once.
     if (parsed.data.url.startsWith('http:')) {
       logWarn(`system "${name}" uses plain http, so its password travels unencrypted. Fine for a local sandbox only.`);
     }

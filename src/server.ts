@@ -64,12 +64,7 @@ interface ToolDefinition {
   description: string;
   inputSchema: z.ZodRawShape;
   handler: (connection: SapConnection, args: never) => Promise<ToolResult>;
-  /**
-   * True for a tool that leaves something on the SAP system - today only the
-   * ATC result entry GetAtcFindings creates. Drives the MCP annotations: such
-   * a tool is neither read-only nor idempotent in the spec's sense, harmless
-   * as the entry is, and a client that gates tools by effect should know.
-   */
+  /** Leaves something on the SAP system (the ATC result entry); drives the MCP annotations. */
   leavesTrace: boolean;
 }
 
@@ -84,7 +79,6 @@ function defineTool<Shape extends z.ZodRawShape>(
   return { name, description, inputSchema, handler, leavesTrace: options.leavesTrace ?? false };
 }
 
-/** The effect hints MCP clients may show or gate on; they add nothing a server-side check would. */
 function annotationsFor(tool: ToolDefinition) {
   return tool.leavesTrace
     ? { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }

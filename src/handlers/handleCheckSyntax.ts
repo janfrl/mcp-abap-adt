@@ -31,10 +31,7 @@ function parseCheckMessages(xml: string): CheckMessage[] | undefined {
   } catch {
     return undefined;
   }
-  // No check-run root means SAP answered with something else entirely - an
-  // HTML page with status 200 parses just fine as XML, for instance. That must
-  // never read as "no messages": for a tool whose answer a model treats as
-  // proof, an answer it could not interpret has to say so.
+  // No check-run root (an HTML page parses fine as XML) must never read as "no messages".
   const runReports = parsed?.['chkrun:checkRunReports'];
   if (!runReports) return undefined;
   const reports = asArray(runReports['chkrun:checkReport']);

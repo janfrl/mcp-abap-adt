@@ -80,16 +80,8 @@ describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout:
     expect(output).toContain('--all');
   });
 
-  /**
-   * npm installs a package's bin as a symlink on macOS and Linux, and Node
-   * resolves the main module to the file behind the link while argv[1] keeps
-   * the link. An entry-point check that compared the two verbatim let every
-   * installed command exit silently without running main() - and no test
-   * noticed, because every test starts `node dist/index.js` directly.
-   * Windows refuses file symlinks without extra privileges, so a directory
-   * junction to dist/ stands in there: the path still differs from the real
-   * one, which is all the check has to survive.
-   */
+  // npm installs the bin as a symlink; Windows needs privileges for file
+  // symlinks, so a junction to dist/ stands in.
   it('runs main() when started through a link, the way npm installs the command', async () => {
     let linkedEntry = join(workDir, 'mcp-abap-adt');
     try {

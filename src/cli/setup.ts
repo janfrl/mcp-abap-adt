@@ -172,11 +172,7 @@ export async function setup(options: SetupOptions, deps: SetupDeps = {}): Promis
   }
 
   if (!options.skipCredentials) {
-    // Credentials belong to the systems as they will actually be used, which
-    // after the merge above may differ from the team file: a local override of
-    // url or client wins, and the keychain entry is keyed by exactly those. A
-    // system whose local entry already names a password source is left alone,
-    // since the keychain would never be consulted for it.
+    // Keyed by the merged url and client, not the team file's: local overrides win.
     const mergedSystems = merged.systems as Record<string, unknown>;
     const targets: Array<[string, ResolvedSystem]> = [];
     const unusable: string[] = [];

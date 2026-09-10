@@ -141,13 +141,9 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 }
 
 /**
- * Whether this file is the process's main module, as opposed to being imported
- * by a test. Both sides are resolved to their real paths first: npm installs a
- * package's bin as a symlink on macOS and Linux, and Node resolves the main
- * module to the file behind the link while argv[1] keeps the link itself.
- * Comparing the two verbatim made every installed command - global install
- * and npx alike - exit silently without ever running main(); only a direct
- * `node dist/index.js` matched, which is exactly what the tests used.
+ * Main module, as opposed to imported by a test. Real paths on both sides:
+ * npm installs the bin as a symlink, and Node resolves the main module
+ * behind the link while argv[1] keeps the link.
  */
 function isMainModule(): boolean {
   const entry = process.argv[1];
