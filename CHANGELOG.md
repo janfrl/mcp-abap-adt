@@ -10,6 +10,92 @@ onwards they are generated from conventional commits by
 [changelogen](https://github.com/unjs/changelogen) via `npm run release`, which
 is why the style changes further up the file.
 
+## v2.5.0
+
+[compare changes](https://github.com/janfrl/mcp-abap-adt/compare/v2.4.0...v2.5.0)
+
+### 🚀 Features
+
+- **connection:** Log ADT calls and session replacements ([d1dfcaf](https://github.com/janfrl/mcp-abap-adt/commit/d1dfcaf))
+- **server:** Send diagnostics to the client, not only to stderr ([8ecb4b6](https://github.com/janfrl/mcp-abap-adt/commit/8ecb4b6))
+- **cli:** Store one password for many systems ([dceb1f7](https://github.com/janfrl/mcp-abap-adt/commit/dceb1f7))
+- **cli:** Add a doctor command ([e00db0e](https://github.com/janfrl/mcp-abap-adt/commit/e00db0e))
+- **cli:** Add setup --from for shared team configuration ([5eb497f](https://github.com/janfrl/mcp-abap-adt/commit/5eb497f))
+- Trust what the operating system trusts, without an env-block entry ([2483fc1](https://github.com/janfrl/mcp-abap-adt/commit/2483fc1))
+- **config:** Give every request a minute rather than thirty seconds ([ae49502](https://github.com/janfrl/mcp-abap-adt/commit/ae49502))
+- Add GetWhereUsed for usage references (UC2) ([a3639f4](https://github.com/janfrl/mcp-abap-adt/commit/a3639f4))
+- Add GetSystemInfo for release and component versions ([45eab46](https://github.com/janfrl/mcp-abap-adt/commit/45eab46))
+- Add CheckSyntax for non-activating syntax checks (UC9) ([3ef9dea](https://github.com/janfrl/mcp-abap-adt/commit/3ef9dea))
+- Add GetAtcFindings for ATC findings (UC7) ([85bcf5a](https://github.com/janfrl/mcp-abap-adt/commit/85bcf5a))
+- **server:** Annotate every tool's effect, and bound SearchObject ([38fce29](https://github.com/janfrl/mcp-abap-adt/commit/38fce29))
+
+### 🩹 Fixes
+
+- **cli:** Tell doctor's TLS failures apart, and name the one setting that fixes them ([97a3cf9](https://github.com/janfrl/mcp-abap-adt/commit/97a3cf9))
+- **cli:** Stop decorating healthy systems with a status that reads like an error ([a752bb5](https://github.com/janfrl/mcp-abap-adt/commit/a752bb5))
+- **cli:** Default the bulk write confirmation to yes ([1fcd8e9](https://github.com/janfrl/mcp-abap-adt/commit/1fcd8e9))
+- **connection:** Load the OS trust store where connections are born ([7167113](https://github.com/janfrl/mcp-abap-adt/commit/7167113))
+- **lib:** Keep NODE_EXTRA_CA_CERTS when loading the OS trust store ([626ed94](https://github.com/janfrl/mcp-abap-adt/commit/626ed94))
+- **cli:** Rebuild doctor's TLS diagnosis on structure instead of display text ([7d7d37e](https://github.com/janfrl/mcp-abap-adt/commit/7d7d37e))
+- **cli:** Make the credential prompts safe for pipes and mixed landscapes ([2c7753f](https://github.com/janfrl/mcp-abap-adt/commit/2c7753f))
+- **cli:** Stop setup from writing what the rc file cannot carry ([3c99be5](https://github.com/janfrl/mcp-abap-adt/commit/3c99be5))
+- **lib:** Load the trust store after the configuration, and read the skip strictly ([139e290](https://github.com/janfrl/mcp-abap-adt/commit/139e290))
+- **cli:** Write the team file's own words into the rc file, not the schema's ([8a1e3f4](https://github.com/janfrl/mcp-abap-adt/commit/8a1e3f4))
+- **connection:** Tell a timed-out user how long the budget was and where to raise it ([fa2df92](https://github.com/janfrl/mcp-abap-adt/commit/fa2df92))
+- Raise the CVERS row limit so a system with many add-ons is not cut ([36e9377](https://github.com/janfrl/mcp-abap-adt/commit/36e9377))
+- List only real usages in GetWhereUsed, and cap the list ([59acaa2](https://github.com/janfrl/mcp-abap-adt/commit/59acaa2))
+- **atc:** Refuse check variants the system does not offer ([860c7a8](https://github.com/janfrl/mcp-abap-adt/commit/860c7a8))
+- **atc:** Use the configured timeout instead of a floor of its own ([8ab6ffb](https://github.com/janfrl/mcp-abap-adt/commit/8ab6ffb))
+- **cli:** Run main() when started through the bin symlink npm installs ([2517cba](https://github.com/janfrl/mcp-abap-adt/commit/2517cba))
+- **handlers:** Let CheckSyntax refuse an answer it cannot read ([9bcf241](https://github.com/janfrl/mcp-abap-adt/commit/9bcf241))
+- **cli:** Let setup store credentials for the connection that is really used ([2d11071](https://github.com/janfrl/mcp-abap-adt/commit/2d11071))
+- **cli:** Make doctor count a missing credential source as a finding ([d1346e4](https://github.com/janfrl/mcp-abap-adt/commit/d1346e4))
+- **config:** Refuse credentials inside a url, and warn about plain http ([acdcd73](https://github.com/janfrl/mcp-abap-adt/commit/acdcd73))
+- **config:** Warn about plain http on every configuration route ([bae5167](https://github.com/janfrl/mcp-abap-adt/commit/bae5167))
+- **server:** Annotate ListSystems like the other read-only tools ([f33c945](https://github.com/janfrl/mcp-abap-adt/commit/f33c945))
+
+### 💅 Refactors
+
+- Share asArray and the URI-fragment parser ([806f729](https://github.com/janfrl/mcp-abap-adt/commit/806f729))
+- **server:** Name the two annotation sets instead of passing a boolean ([e137b25](https://github.com/janfrl/mcp-abap-adt/commit/e137b25))
+
+### 📖 Documentation
+
+- Document store-credentials --all, doctor, and setup --from ([b10f9e0](https://github.com/janfrl/mcp-abap-adt/commit/b10f9e0))
+- Teach allowSelfSigned as the last resort it is ([2c5d057](https://github.com/janfrl/mcp-abap-adt/commit/2c5d057))
+- Bring server.json back in step, and document --username ([a15dc83](https://github.com/janfrl/mcp-abap-adt/commit/a15dc83))
+- Align README and server.json with the reviewed behaviour ([abedf8e](https://github.com/janfrl/mcp-abap-adt/commit/abedf8e))
+- Explain the timeout knobs where the error lands, and the npx pinning trade-off ([847845d](https://github.com/janfrl/mcp-abap-adt/commit/847845d))
+- Recommend the global install for permanent setups ([e00403d](https://github.com/janfrl/mcp-abap-adt/commit/e00403d))
+- Present both install routes as an update-policy choice ([d9ab053](https://github.com/janfrl/mcp-abap-adt/commit/d9ab053))
+- Move the deep dives to docs/, keep the README at user altitude ([1488093](https://github.com/janfrl/mcp-abap-adt/commit/1488093))
+- Move the migration guide into docs/ ([61b29e4](https://github.com/janfrl/mcp-abap-adt/commit/61b29e4))
+- Name the read-only POST tools in the security model ([f41c4be](https://github.com/janfrl/mcp-abap-adt/commit/f41c4be))
+- Describe CheckSyntax by what it actually does ([0e7e0d5](https://github.com/janfrl/mcp-abap-adt/commit/0e7e0d5))
+- Document the three tools from the first cycle ([eda75d4](https://github.com/janfrl/mcp-abap-adt/commit/eda75d4))
+- **atc:** Give the worklist its real lifetime, trim the README ([263cc30](https://github.com/janfrl/mcp-abap-adt/commit/263cc30))
+- **atc:** Give the worklist its real lifetime in the README too ([4ab1774](https://github.com/janfrl/mcp-abap-adt/commit/4ab1774))
+- Use neutral example names instead of internal system ids ([ca80ddd](https://github.com/janfrl/mcp-abap-adt/commit/ca80ddd))
+- Lead the README with a quick start, and move the deep dives to docs/ ([65a141e](https://github.com/janfrl/mcp-abap-adt/commit/65a141e))
+- Onboard through setup --from alone, and drop the absolute claims ([91a7a09](https://github.com/janfrl/mcp-abap-adt/commit/91a7a09))
+- **security:** Say verification is on by default, not always on ([d7aad08](https://github.com/janfrl/mcp-abap-adt/commit/d7aad08))
+- Say where the systems file may live, and show a real path ([64b8124](https://github.com/janfrl/mcp-abap-adt/commit/64b8124))
+
+### 📦 Build
+
+- Sync server.json into the release commit automatically ([e11af4b](https://github.com/janfrl/mcp-abap-adt/commit/e11af4b))
+- **deps:** Take the non-breaking audit fixes ([7d8ba85](https://github.com/janfrl/mcp-abap-adt/commit/7d8ba85))
+
+### 🏡 Chore
+
+- Bump server.json for the 2.5.0 release ([301200a](https://github.com/janfrl/mcp-abap-adt/commit/301200a))
+- Bump server.json for the 2.5.0 release" ([2e1bef2](https://github.com/janfrl/mcp-abap-adt/commit/2e1bef2))
+
+### ❤️ Contributors
+
+- Jan Fröhlich ([@janfrl](https://github.com/janfrl))
+- Elias-Bechtle <elias.moegerle@bechtle.com>
+
 ## v2.4.0
 
 [compare changes](https://github.com/janfrl/mcp-abap-adt/compare/v2.3.0...v2.4.0)

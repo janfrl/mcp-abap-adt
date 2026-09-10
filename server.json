@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.janfrl/mcp-abap-adt",
   "description": "ABAP ADT MCP server for reading SAP objects (programs, classes, tables, CDS) via ADT, with multi-system and OS keychain support",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "repository": {
     "url": "https://github.com/janfrl/mcp-abap-adt",
     "source": "github"
@@ -12,7 +12,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@janfr/mcp-abap-adt",
-      "version": "2.4.0",
+      "version": "2.5.0",
       "transport": {
         "type": "stdio"
       },
