@@ -75,6 +75,22 @@ describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout:
     expect(output).toContain('Usage: mcp-abap-adt setup [--from');
   });
 
+  it('rejects an unknown command instead of starting the server', async () => {
+    const { code, output } = await runCli(['test']);
+
+    expect(code).toBe(2);
+    expect(output).toContain('Unknown command "test"');
+    expect(output).toContain('Commands:');
+  });
+
+  it('prints the command list for help', async () => {
+    const { code, output } = await runCli(['help']);
+
+    expect(code).toBe(0);
+    expect(output).toContain('doctor');
+    expect(output).toContain('add');
+  });
+
   it('remove without a name prints usage and exits with 2', async () => {
     const { code, output } = await runCli(['remove']);
 

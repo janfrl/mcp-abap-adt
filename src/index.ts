@@ -61,6 +61,19 @@ function readCliOverrides(values: Record<string, unknown>): {
   return { overrides, errors };
 }
 
+const USAGE = `Usage: mcp-abap-adt [command]
+
+Without a command the MCP server starts on stdin/stdout, which is how MCP clients run it.
+
+Commands:
+  setup [--from <path or https URL>]   Take over a shared systems list (or paste it), store the password
+  add [<name>] [--url ...]             Add one system, asking for what is missing
+  remove <name>                        Remove one system from the user-level rc file
+  store-credentials --system <name>    Store a password in the OS keychain (--all for every system)
+  doctor [--login]                     Check configuration, keychain and reachability
+  help                                 This text
+`;
+
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
   const { values, positionals } = parseArgs({
     args: argv,
@@ -80,6 +93,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       url: { type: 'string' },
       client: { type: 'string' },
       language: { type: 'string' },
+      help: { type: 'boolean' },
     },
     allowPositionals: true,
     strict: false,
@@ -134,6 +148,23 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       configFile,
     });
     return;
+  }
+
+  if (positionals[0] === 'help' || values.help === true) {
+    process.stdout.write(USAGE);
+    return;
+  }
+  if (positionals.length > 0) {
+    // Anything else would start the MCP server and sit waiting for a client
+    // that never comes, which from a terminal looks like a hang.
+    process.stderr.write(`Unknown command "${positionals[0]}".\n${USAGE}`);
+    process.exitCode = 2;
+    return;
+  }
+  if (process.stdin.isTTY) {
+    logWarn(
+      'running as an MCP server, waiting for a client on stdin; this is not a command prompt. Ctrl+C to stop, `mcp-abap-adt help` for the commands.',
+    );
   }
 
   const { overrides, errors: argErrors } = readCliOverrides(values);
