@@ -13,7 +13,7 @@ SELECT COUNT(*) AS cnt FROM t000
 
 Dialect notes, since this is ABAP SQL and not the SQL you may expect: exactly one SELECT, no trailing semicolon, `ASCENDING`/`DESCENDING` instead of `ASC`/`DESC`, and no `LIMIT` clause — use the `maxRows` argument, which defaults to 100 and is capped at 5000. Joins with the tilde notation (`h~field`) work.
 
-Every result ends with the database execution time SAP reports, so a slow answer can be told apart from a slow network. A single heavy query can be given more time with `timeoutMs` on the call (up to 10 minutes); a generally slow system gets a higher `"timeoutMs"` in its configuration entry instead.
+Every result ends with the database execution time SAP reports, so a slow answer can be told apart from a slow network. A single heavy query can be given more time with `timeoutMs` on the call (up to 10 minutes); a generally slow system gets a higher budget for every tool with `mcp-abap-adt config systems.<name>.timeoutMs 120000`.
 
 Nothing here can write — SAP itself turns anything but a query into a syntax error, and the server checks again on top. Every query runs under the SAP authorisations of the configured user, which remains the real boundary on what can be read. `"allowFreeSql": false` forbids ad-hoc queries per system, with a caveat worth reading first: [the security model](security.md#read-only-by-design) explains why that setting makes a model read more data, not less.
 
@@ -38,11 +38,11 @@ A hit inside a method carries its type in the URI fragment rather than on the ob
 
 `GetAtcFindings` runs the ABAP Test Cockpit against one object and returns its findings with priority, line, the sub-object they sit in, the check that fired and its message. That is a different question from `CheckSyntax`: syntax says whether code compiles, ATC says whether it obeys the rules this system has decided to enforce — which a model cannot know from training data.
 
-What gets checked is the object **as it is stored in the system**, not an unsaved draft. A change a model has only proposed is covered once it has been applied through some other channel; for text that exists only in the conversation, `CheckSyntax` is the tool. Conflating the two is how a model ends up calling its own change "ATC-checked" when only the previous state was.
-
 Which rules those are depends entirely on the **check variant**. There is no universal default, so `check_variant` is optional and falls back to the variant the system itself has configured (`systemCheckVariant` in the ATC customizing), exactly as ADT does for "Run ABAP Test Cockpit".
 
 A variant the system does not offer is **rejected**, with the names it does offer, rather than run. That matters more than it sounds: SAP does not refuse an unusable variant but silently runs its own default instead, and nothing in the response says which variant executed — so without the check an answer could name a variant that never ran. [The security model](security.md#why-the-check-variant-is-validated-first) has the measurements behind that.
+
+What gets checked is the object **as it is stored in the system**, not an unsaved draft. A change a model has only proposed is covered once it has been applied through some other channel; for text that exists only in the conversation, `CheckSyntax` is the tool. Conflating the two is how a model ends up calling its own change "ATC-checked" when only the previous state was.
 
 Three outcomes are deliberately kept apart, because conflating them is how a model concludes that unchecked code is fine:
 

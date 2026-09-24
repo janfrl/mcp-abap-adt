@@ -85,7 +85,7 @@ If you already use the **SAP Fiori tools** VS Code extension and saved your syst
 npm install -g @janfr/mcp-abap-adt   # run it again later to update to the newest version
 ```
 
-**Alternative: npx.** `npx -y @janfr/mcp-abap-adt` as the client command needs no installation and fetches the latest version on every start. That convenience means whatever is published under this name runs on your machine unseen, and this server holds your SAP credentials — [the security model](docs/security.md#installing-globally-or-through-npx) explains the trade-off. Pinning a version (`@janfr/mcp-abap-adt@2.5.0`) closes the gap at the cost of editing every client to update.
+**Alternative: npx.** `npx -y @janfr/mcp-abap-adt` as the client command needs no installation and fetches the latest version on every start. That convenience means whatever is published under this name runs on your machine unseen, and this server holds your SAP credentials — [the security model](docs/security.md#installing-globally-or-through-npx) explains the trade-off. Pinning a version (`@janfr/mcp-abap-adt@<version>`) closes the gap at the cost of editing every client to update.
 
 **From source**, for development:
 
@@ -221,7 +221,7 @@ A config-file entry whose name matches an imported system is treated as an **ove
 }
 ```
 
-Spelling out `url` turns the entry into a full definition that replaces the imported one. If an override is invalid, the imported system stays usable and `ListSystems` reports that the override was ignored.
+The same without editing a file: `mcp-abap-adt config systems.PRD400.language EN`. Spelling out `url` turns the entry into a full definition that replaces the imported one. If an override is invalid, the imported system stays usable and `ListSystems` reports that the override was ignored.
 
 ## 5. Credentials
 
@@ -231,7 +231,7 @@ The server looks for a password in this order and uses the first one that applie
 
 Credentials live in the Windows Credential Manager, the macOS Keychain or libsecret — never in a file. The entries use the same naming as the SAP Fiori tools VS Code extension (service `fiori/v2/system`, account `<url>[/<client>]`), so the two tools share one entry.
 
-If you already saved a system in **SAP Fiori tools**, you are done: set `"importFioriSystems": true` and the server picks up the system *and* its password. Systems using an authentication type other than basic are skipped with an explanatory message.
+If you already saved a system in **SAP Fiori tools**, you are done: `mcp-abap-adt config importFioriSystems true`, and the server picks up the system *and* its password. Systems using an authentication type other than basic are skipped with an explanatory message.
 
 It is off by default deliberately: turning it on gives a model read access to every system you have saved, production among them — a decision to make rather than to inherit ([why, in full](docs/security.md#why-importfiorisystems-is-off-by-default)). A server with nothing configured names the systems it could adopt, so the option stays findable.
 
@@ -372,13 +372,13 @@ Reachability is probed without authentication, so running it never touches a fai
 
 **The client says the server could not be started** — the client cannot find the `mcp-abap-adt` command. On Windows, Claude Desktop finds globally installed npm commands; if another client does not, use the full path instead: the folder that `npm prefix -g` prints, plus `\mcp-abap-adt.cmd`. Or switch that client to `npx`.
 
-**"TLS certificate verification failed"** — on a company network the certificate is usually fine: the server loads the operating system's trust store automatically, so what your browser trusts, it trusts. `doctor` tells the two cases apart. If the certificate genuinely cannot be validated (a self-signed sandbox), `"allowSelfSigned": true` on that system — or an [override entry](#adjusting-an-imported-system) for an imported one — switches verification off there. Mechanics, older-Node fallback and the opt-out live in [docs/security.md](docs/security.md#tls-and-the-trust-stores).
+**"TLS certificate verification failed"** — on a company network the certificate is usually fine: the server loads the operating system's trust store automatically, so what your browser trusts, it trusts. `doctor` tells the two cases apart. If the certificate genuinely cannot be validated (a self-signed sandbox), `mcp-abap-adt config systems.<name>.allowSelfSigned true` switches verification off for that system, imported ones included. Mechanics and the opt-out live in [docs/security.md](docs/security.md#tls-and-the-trust-stores).
 
 **"No keychain entry for system ..."** — run `mcp-abap-adt store-credentials --system <name>`, or save the system in SAP Fiori tools. Note that the entry is keyed by URL *and* client, so `https://host` and `https://host/100` are different entries.
 
-**"No answer from system ... within ... ms"** — the request ran out of its time budget. Every request gets 60 seconds by default. For one heavy query, pass `timeoutMs` on the `ExecuteQuery` call (up to 10 minutes) — a model reading the error can retry with it directly. If a system is generally slow, raise `"timeoutMs"` in its configuration entry instead, which applies to every tool.
+**"No answer from system ... within ... ms"** — the request ran out of its time budget. Every request gets 60 seconds by default. For one heavy query, pass `timeoutMs` on the `ExecuteQuery` call (up to 10 minutes) — a model reading the error can retry with it directly. If a system is generally slow, raise its budget for every tool instead: `mcp-abap-adt config systems.<name>.timeoutMs 120000`.
 
-**"No system was given and no default system is configured"** — you have more than one system and no `defaultSystem`. Either set one or pass `system` in the call.
+**"No system was given and no default system is configured"** — you have more than one system and no default. Set one with `mcp-abap-adt default <name>`, or pass `system` in the call.
 
 **SAP returns 401 or 403** — check the user and client, and that the user may use ADT. Some ADT endpoints need `S_DEVELOP` authorizations.
 
@@ -388,7 +388,7 @@ Reachability is probed without authentication, so running it never touches a fai
 
 ## 9. Further reading
 
-- **[Configuration in depth](docs/configuration.md)** — every setting without a file, precedence, the user-level rc file, and team onboarding with `setup --from`.
+- **[Configuration in depth](docs/configuration.md)** — every setting without a file, precedence, the user-level rc file, the `config` command, and team onboarding with `setup --from`.
 - **[The tools in detail](docs/tools.md)** — the ABAP SQL dialect, and how the syntax, where-used and ATC tools interpret SAP's answers.
 - **[Security model](docs/security.md)** — why this server cannot write, the TLS trust-store mechanics, the install trade-off, OAuth, and how logon attempts are kept away from SAP lock counters.
 - **[Debugging](docs/debugging.md)** — tracing every ADT call, and driving the server with the MCP Inspector.

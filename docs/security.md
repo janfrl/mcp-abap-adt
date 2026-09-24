@@ -60,7 +60,6 @@ Node normally validates against its own bundled CA list and ignores the operatin
 Knobs and edge cases:
 
 - `SAP_USE_SYSTEM_CA=false` restricts the server to Node's bundled list, for anyone who deliberately wants that.
-- The runtime APIs for this arrived during Node 22. On an older patch level nothing changes, `doctor` says so under its table, and `"NODE_USE_SYSTEM_CA": "1"` in the client's `env` block is the equivalent fix.
 - `NODE_EXTRA_CA_CERTS` keeps working for a CA bundle that lives in a file.
 - For anyone embedding the server as a library: loading happens where connections are constructed and is process-global, the same effect as `NODE_USE_SYSTEM_CA=1`.
 
@@ -78,6 +77,6 @@ The README recommends `npm install -g` and mentions `npx -y` as the alternative.
 
 A global install runs the version you installed until you run `npm install -g @janfr/mcp-abap-adt` again yourself. Plain `npx -y @janfr/mcp-abap-adt` resolves `latest` on every start, so updates arrive by themselves — and so would anything else published under this name. If the npm account behind a package is ever compromised (a supply-chain attack), auto-updating installations are the ones that execute the malicious version, unseen, at the next start. This server holds your SAP credentials, which is why the README does not make npx the default.
 
-Pinning a version in the npx call (`@janfr/mcp-abap-adt@2.5.0`) closes that window as well, at the cost of editing every client entry to update. The global install gets the same protection with one command to update and client entries that never change.
+Pinning a version in the npx call (`@janfr/mcp-abap-adt@<version>`) closes that window as well, at the cost of editing every client entry to update. The global install gets the same protection with one command to update and client entries that never change.
 
 On the publishing side, releases are made manually from the maintainer's machine with npm two-factor authentication; no long-lived automation token exists whose theft could publish in this package's name.

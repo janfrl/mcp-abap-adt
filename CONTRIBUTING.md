@@ -9,7 +9,7 @@ npm run lint         # oxlint, including type-aware rules
 npm run lint:fix
 npm run fmt          # oxfmt; fmt:check verifies without writing
 npm run inspect      # build, then the MCP Inspector web UI
-npm run inspect:cli  # same without a browser; examples in the README's Troubleshooting section
+npm run inspect:cli  # same without a browser; examples in docs/debugging.md
 ```
 
 ## Releasing
