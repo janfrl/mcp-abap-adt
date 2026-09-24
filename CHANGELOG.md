@@ -10,6 +10,34 @@ onwards they are generated from conventional commits by
 [changelogen](https://github.com/unjs/changelogen) via `npm run release`, which
 is why the style changes further up the file.
 
+## v2.7.0
+
+[compare changes](https://github.com/janfrl/mcp-abap-adt/compare/v2.6.0...v2.7.0)
+
+### 🚀 Features
+
+- **cli:** Add and remove one system without touching JSON or the rc file ([45b085e](https://github.com/janfrl/mcp-abap-adt/commit/45b085e))
+- **cli:** Set the default system, and print the version, from the command line ([2b23ccc](https://github.com/janfrl/mcp-abap-adt/commit/2b23ccc))
+
+### 🩹 Fixes
+
+- **cli:** Refuse an unknown command instead of silently starting the server ([1fe7c75](https://github.com/janfrl/mcp-abap-adt/commit/1fe7c75))
+- **cli:** Show the help for a bare command in a terminal instead of waiting ([d0e49fd](https://github.com/janfrl/mcp-abap-adt/commit/d0e49fd))
+- **cli:** Report Ctrl+C in a prompt as a cancel, not a fatal error ([8ce9dba](https://github.com/janfrl/mcp-abap-adt/commit/8ce9dba))
+
+### 📖 Documentation
+
+- **cli:** Cut the help down to the commands and a few words each ([c12d472](https://github.com/janfrl/mcp-abap-adt/commit/c12d472))
+
+### 📦 Build
+
+- Inspect the package before it is published ([466a53c](https://github.com/janfrl/mcp-abap-adt/commit/466a53c))
+- **deps:** Update the dependencies, and state the Node version undici needs ([fa4a0ce](https://github.com/janfrl/mcp-abap-adt/commit/fa4a0ce))
+
+### ❤️ Contributors
+
+- Jan Fröhlich ([@janfrl](https://github.com/janfrl))
+
 ## v2.6.0
 
 [compare changes](https://github.com/janfrl/mcp-abap-adt/compare/v2.5.0...v2.6.0)
