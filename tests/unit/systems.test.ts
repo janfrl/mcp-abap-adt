@@ -189,7 +189,7 @@ describe('remove', () => {
     expect(await readFile(rcPath, 'utf8')).not.toContain('systems.QAS200');
     expect(out()).toContain('still configured');
     expect(out()).toContain('SAP Fiori tools');
-    expect(out()).toContain('importFioriSystems=false');
+    expect(out()).toContain('mcp-abap-adt config importFioriSystems false');
     expect(out()).not.toContain('removed "QAS200"');
   });
 

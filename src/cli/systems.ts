@@ -168,7 +168,7 @@ export async function removeSystem(options: RemoveSystemOptions, deps: SystemsDe
       `Wrote ${rcPath}: removed the local settings for "${options.name}", but the system is still configured: ` +
         `it comes from ${stillThere.origin === 'fiori-tools' ? 'SAP Fiori tools' : `the ${stillThere.origin}`}.\n` +
         (stillThere.origin === 'fiori-tools'
-          ? 'Remove it in the Fiori tools extension, or stop the import for all systems with importFioriSystems=false.\n'
+          ? 'Remove it in the Fiori tools extension, or stop the import for all systems: mcp-abap-adt config importFioriSystems false\n'
           : ''),
     );
     return 1;
