@@ -2,6 +2,7 @@
 
 ```bash
 npm install
+npm run check        # everything CI runs: build, tests, typecheck, lint, format, package check
 npm run build        # compile to dist/
 npm test             # unit tests, no SAP system needed
 npm run typecheck
@@ -26,7 +27,7 @@ npm publish
 
 Publishing happens manually from the maintainer's machine with npm 2FA - deliberately: no long-lived automation token exists whose theft could publish in this package's name. Keep it that way, and keep 2FA on.
 
-`prepublishOnly` runs the build, lint, typecheck, the tests and `npm run check:package` before npm uploads anything. The package check inspects what `npm pack` would ship: only `dist/`, README, LICENSE and package.json may be in it, and none of them may contain credential-looking tokens, private keys, local paths or real e-mail addresses. Patterns that must not appear in this public repository themselves - a company's system ids or hostnames - go into a local file, one regular expression per line, named by `PACKAGE_CHECK_PATTERNS`. CI runs the same check.
+`prepublishOnly` runs `npm run check` before npm uploads anything, so a publish passes the same gates as CI. The package check inspects what `npm pack` would ship: only `dist/`, README, LICENSE and package.json may be in it, and none of them may contain credential-looking tokens, private keys, local paths or real e-mail addresses. Patterns that must not appear in this public repository themselves - a company's system ids or hostnames - go into a local file, one regular expression per line, named by `PACKAGE_CHECK_PATTERNS`. CI runs the same check.
 
 changelogen bumps only package.json. `server.json`, the MCP registry manifest, and `package-lock.json` each carry the version twice; scripts/release.mjs syncs both into the same release commit and re-points the tag, because each went stale for several releases while this was left to hand.
 
