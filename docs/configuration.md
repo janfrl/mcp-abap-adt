@@ -54,6 +54,12 @@ systems.dev.keychain=true
 
 Everything else — a config file in the working directory, the environment, the command line — takes precedence over it, in that order.
 
+## Every setting from the command line: `config`
+
+`mcp-abap-adt config` shows the configuration as the server sees it: the global settings, every system with its origin, credential source and the settings that differ from the defaults, and any problems. `config <setting>` prints one value from the rc file, `config <setting> <value>` sets it and `config <setting> --unset` removes it. Settings are `defaultSystem`, `importFioriSystems` and, per system, `systems.<name>.<field>` for every field of a system except the password, which belongs in the keychain (`store-credentials`).
+
+Every change is written and then checked with the loader the server uses; one that would break the configuration is undone again. The rc file is the lowest layer, so a config file, the environment or a `.env` can still override a value; `config` then says which source keeps the old value in effect.
+
 ## One system at a time: `add` and `remove`
 
 `mcp-abap-adt add` asks for name, URL, client and language (any of them can be given as `--name`, `--url`, `--client`, `--language`, or the name as the first argument), validates the entry, writes it into the rc file with `keychain: true`, and then asks once for username and password to fill the keychain entry; `--skip-credentials` leaves that step out. An existing system of the same name is only replaced after confirmation.

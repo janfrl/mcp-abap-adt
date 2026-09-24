@@ -95,6 +95,7 @@ export interface ConfigError {
 
 export interface ResolvedAppConfig {
   defaultSystem?: string;
+  importFioriSystems?: boolean;
   systems: Map<string, ResolvedSystem>;
   errors: ConfigError[];
   /** Human readable list of the layers that contributed, for diagnostics. */

@@ -9,6 +9,7 @@ import { SapConnection } from '../connection/SapConnection.js';
 import { ConnectionRegistry } from '../connection/registry.js';
 import { ensureSystemTrustStore } from '../lib/trustStore.js';
 import { defaultIo, type CliDeps } from './storeCredentials.js';
+import { renderTable } from './table.js';
 
 export interface DoctorOptions {
   configFile?: string;
@@ -86,14 +87,6 @@ async function probeLogin(name: string, system: ResolvedSystem, loginFetch?: typ
   } finally {
     await connection.close().catch(() => undefined);
   }
-}
-
-function renderTable(headers: string[], rows: string[][]): string {
-  const widths = headers.map((header, column) =>
-    Math.max(header.length, ...rows.map((row) => (row[column] ?? '').length)),
-  );
-  const line = (cells: string[]) => cells.map((cell, column) => cell.padEnd(widths[column])).join('  ');
-  return [line(headers), line(widths.map((width) => '-'.repeat(width))), ...rows.map(line)].join('\n');
 }
 
 /**

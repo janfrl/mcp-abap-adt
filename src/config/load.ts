@@ -222,7 +222,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
     });
   }
 
-  return { defaultSystem, systems, errors, sources };
+  return { defaultSystem, importFioriSystems: app.importFioriSystems, systems, errors, sources };
 }
 
 /** Names at most this many systems before summarising the rest. */

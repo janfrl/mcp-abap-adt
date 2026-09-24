@@ -68,6 +68,7 @@ const USAGE = `Usage: mcp-abap-adt <command>
   add                Add one system
   remove             Remove a system
   default            Show or set the default system
+  config             Show or change the configuration
   store-credentials  Store or change a password
   doctor             Check the setup
   version            Show the installed version
@@ -79,6 +80,7 @@ const COMMANDS = [
   'remove',
   'delete',
   'default',
+  'config',
   'store-credentials',
   'doctor',
   'version',
@@ -129,6 +131,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       language: { type: 'string' },
       help: { type: 'boolean' },
       version: { type: 'boolean' },
+      unset: { type: 'boolean' },
     },
     allowPositionals: true,
     strict: false,
@@ -182,6 +185,12 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       username: values.username as string | undefined,
       configFile,
     });
+    return;
+  }
+
+  if (positionals[0] === 'config') {
+    const { config } = await import('./cli/config.js');
+    process.exitCode = await config({ key: positionals[1], value: positionals[2], unset: values.unset === true });
     return;
   }
 
