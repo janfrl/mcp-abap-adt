@@ -10,6 +10,37 @@ onwards they are generated from conventional commits by
 [changelogen](https://github.com/unjs/changelogen) via `npm run release`, which
 is why the style changes further up the file.
 
+## v2.8.0
+
+[compare changes](https://github.com/janfrl/mcp-abap-adt/compare/v2.7.0...v2.8.0)
+
+### 🚀 Features
+
+- **cli:** Show and change the whole configuration with `config` ([fb4c1c7](https://github.com/janfrl/mcp-abap-adt/commit/fb4c1c7))
+- **cli:** Accept -v and -h as short forms of --version and --help ([d9226a8](https://github.com/janfrl/mcp-abap-adt/commit/d9226a8))
+
+### 🩹 Fixes
+
+- **build:** Sync the lockfile's version in the release commit too ([b0c3662](https://github.com/janfrl/mcp-abap-adt/commit/b0c3662))
+- **cli:** Say when remove only dropped an override of an imported system ([c759d47](https://github.com/janfrl/mcp-abap-adt/commit/c759d47))
+- **cli:** Name the layer that overrides a setting, and suggest a mistyped one ([c6d6ff5](https://github.com/janfrl/mcp-abap-adt/commit/c6d6ff5))
+- **cli:** Point messages at the commands, and drop the dead old-Node advice ([5b5af7b](https://github.com/janfrl/mcp-abap-adt/commit/5b5af7b))
+- **cli:** Let remove point at the config command to stop the Fiori import ([e36005b](https://github.com/janfrl/mcp-abap-adt/commit/e36005b))
+
+### 📖 Documentation
+
+- Update with the install command, which always takes the newest version ([291b29e](https://github.com/janfrl/mcp-abap-adt/commit/291b29e))
+- Trim the example config to the settings people copy ([90cd6bd](https://github.com/janfrl/mcp-abap-adt/commit/90cd6bd))
+- Bring the documentation up to the current commands and versions ([6df7c8c](https://github.com/janfrl/mcp-abap-adt/commit/6df7c8c))
+
+### 📦 Build
+
+- Run every CI gate locally with npm run check ([e69b1b2](https://github.com/janfrl/mcp-abap-adt/commit/e69b1b2))
+
+### ❤️ Contributors
+
+- Jan Fröhlich ([@janfrl](https://github.com/janfrl))
+
 ## v2.7.0
 
 [compare changes](https://github.com/janfrl/mcp-abap-adt/compare/v2.6.0...v2.7.0)
