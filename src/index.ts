@@ -62,20 +62,56 @@ function readCliOverrides(values: Record<string, unknown>): {
   return { overrides, errors };
 }
 
-const USAGE = `Usage: mcp-abap-adt [command]
+const USAGE = `Usage: mcp-abap-adt <command>
 
-Without a command the MCP server starts on stdin/stdout, which is how MCP clients run it.
+MCP clients start the server themselves; in a client, the command is just "mcp-abap-adt".
 
 Commands:
   setup [--from <path or https URL>]   Take over a shared systems list (or paste it), store the password
   add [<name>] [--url ...]             Add one system, asking for what is missing
-  remove <name>                        Remove one system from the user-level rc file
+  remove <name>                        Remove one system from the user-level rc file (alias: delete)
   default [<name>]                     Show or set the system used when a call names none
   store-credentials --system <name>    Store a password in the OS keychain (--all for every system)
   doctor [--login]                     Check configuration, keychain and reachability
   version                              Print the installed version
+  serve                                Run the MCP server by hand, on stdin/stdout
   help                                 This text
 `;
+
+const COMMANDS = [
+  'setup',
+  'add',
+  'remove',
+  'delete',
+  'default',
+  'store-credentials',
+  'doctor',
+  'version',
+  'serve',
+  'help',
+];
+
+function editDistance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let previous = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const current = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
+      previous = current;
+    }
+  }
+  return row[b.length];
+}
+
+/** The closest known command within two edits, for "Did you mean ...?". */
+function suggestCommand(input: string): string | undefined {
+  const [best] = COMMANDS.map((command) => ({ command, cost: editDistance(input.toLowerCase(), command) })).toSorted(
+    (x, y) => x.cost - y.cost,
+  );
+  return best && best.cost <= 2 ? best.command : undefined;
+}
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
   const { values, positionals } = parseArgs({
@@ -130,7 +166,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     return;
   }
 
-  if (positionals[0] === 'remove') {
+  if (positionals[0] === 'remove' || positionals[0] === 'delete') {
     const { removeSystem } = await import('./cli/systems.js');
     process.exitCode = await removeSystem({ name: positionals[1] ?? (values.name as string | undefined) });
     return;
@@ -168,17 +204,19 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     process.stdout.write(`${SERVER_VERSION}\n`);
     return;
   }
-  if (positionals.length > 0) {
+  const serve = positionals[0] === 'serve';
+  if (positionals.length > 0 && !serve) {
     // Anything else would start the MCP server and sit waiting for a client
     // that never comes, which from a terminal looks like a hang.
-    process.stderr.write(`Unknown command "${positionals[0]}".\n${USAGE}`);
+    const guess = suggestCommand(positionals[0]);
+    process.stderr.write(`Unknown command "${positionals[0]}".${guess ? ` Did you mean "${guess}"?` : ''}\n\n${USAGE}`);
     process.exitCode = 2;
     return;
   }
-  if (process.stdin.isTTY) {
-    logWarn(
-      'running as an MCP server, waiting for a client on stdin; this is not a command prompt. Ctrl+C to stop, `mcp-abap-adt help` for the commands.',
-    );
+  // MCP clients always connect through pipes; a terminal on stdin means a person typed the bare command.
+  if (!serve && process.stdin.isTTY) {
+    process.stdout.write(USAGE);
+    return;
   }
 
   const { overrides, errors: argErrors } = readCliOverrides(values);

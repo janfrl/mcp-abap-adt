@@ -83,6 +83,20 @@ describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout:
     expect(output).toContain('Commands:');
   });
 
+  it('suggests the command a typo was probably meant to be', async () => {
+    const { code, output } = await runCli(['docter']);
+
+    expect(code).toBe(2);
+    expect(output).toContain('Did you mean "doctor"?');
+  });
+
+  it('accepts delete as another name for remove', async () => {
+    const { code, output } = await runCli(['delete']);
+
+    expect(code).toBe(2);
+    expect(output).toContain('Usage: mcp-abap-adt remove');
+  });
+
   it('prints the installed version', async () => {
     const { code, output } = await runCli(['--version']);
 

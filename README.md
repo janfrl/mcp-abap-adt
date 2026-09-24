@@ -101,17 +101,18 @@ Then point your client at `node` with the absolute path to `dist/index.js`.
 
 ### The command line
 
-Without a command, `mcp-abap-adt` starts the MCP server, which is how clients run it. With one, it is a setup tool:
+In an MCP client the command is just `mcp-abap-adt`; the client starts the server itself. In a terminal it is a setup tool:
 
 | Command | Purpose |
 | --- | --- |
 | `setup [--from <path or https URL>]` | Take over a shared systems list, or paste one, and store the password |
 | `add [<name>]` | Add one system, asking for whatever is not given as `--url`, `--client`, `--language` |
-| `remove <name>` | Remove one system from the user-level settings |
+| `remove <name>` | Remove one system from the user-level settings (`delete` works too) |
 | `default [<name>]` | Show or set the system used when a call names none |
 | `store-credentials --system <name>` | Store a password in the OS keychain; `--all` for every system at once |
 | `doctor [--login]` | Check configuration, keychain and reachability; `--login` tries one logon per system |
 | `version`, `help` | The installed version; this list |
+| `serve` | Run the MCP server by hand; typed without a command, `mcp-abap-adt` shows this list instead |
 
 ## 4. Configuring SAP systems
 
