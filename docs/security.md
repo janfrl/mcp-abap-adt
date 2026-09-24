@@ -76,7 +76,7 @@ Failed logons count towards a user lock, so the server is deliberately stingy wi
 
 The README recommends `npm install -g` and mentions `npx -y` as the alternative. The difference is who decides when you update.
 
-A global install runs the version you installed until you run `npm update -g` yourself. Plain `npx -y @janfr/mcp-abap-adt` resolves `latest` on every start, so updates arrive by themselves — and so would anything else published under this name. If the npm account behind a package is ever compromised (a supply-chain attack), auto-updating installations are the ones that execute the malicious version, unseen, at the next start. This server holds your SAP credentials, which is why the README does not make npx the default.
+A global install runs the version you installed until you run `npm install -g @janfr/mcp-abap-adt` again yourself. Plain `npx -y @janfr/mcp-abap-adt` resolves `latest` on every start, so updates arrive by themselves — and so would anything else published under this name. If the npm account behind a package is ever compromised (a supply-chain attack), auto-updating installations are the ones that execute the malicious version, unseen, at the next start. This server holds your SAP credentials, which is why the README does not make npx the default.
 
 Pinning a version in the npx call (`@janfr/mcp-abap-adt@2.5.0`) closes that window as well, at the cost of editing every client entry to update. The global install gets the same protection with one command to update and client entries that never change.
 

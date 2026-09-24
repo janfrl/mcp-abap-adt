@@ -82,8 +82,7 @@ If you already use the **SAP Fiori tools** VS Code extension and saved your syst
 **Recommended: install globally.** The client entry is `"command": "mcp-abap-adt"` and never changes; you decide when to update, with one command:
 
 ```bash
-npm install -g @janfr/mcp-abap-adt
-npm update -g @janfr/mcp-abap-adt   # later, when you want the new version
+npm install -g @janfr/mcp-abap-adt   # run it again later to update to the newest version
 ```
 
 **Alternative: npx.** `npx -y @janfr/mcp-abap-adt` as the client command needs no installation and fetches the latest version on every start. That convenience means whatever is published under this name runs on your machine unseen, and this server holds your SAP credentials — [the security model](docs/security.md#installing-globally-or-through-npx) explains the trade-off. Pinning a version (`@janfr/mcp-abap-adt@2.5.0`) closes the gap at the cost of editing every client to update.
