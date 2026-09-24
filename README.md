@@ -101,7 +101,7 @@ Then point your client at `node` with the absolute path to `dist/index.js`.
 
 ### The command line
 
-In an MCP client the command is just `mcp-abap-adt`; the client starts the server itself. In a terminal it is a setup tool:
+In a terminal, `mcp-abap-adt` manages the SAP systems your MCP client uses:
 
 | Command | Purpose |
 | --- | --- |

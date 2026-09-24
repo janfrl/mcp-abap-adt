@@ -64,18 +64,13 @@ function readCliOverrides(values: Record<string, unknown>): {
 
 const USAGE = `Usage: mcp-abap-adt <command>
 
-MCP clients start the server themselves; in a client, the command is just "mcp-abap-adt".
-
-Commands:
-  setup [--from <path or https URL>]   Take over a shared systems list (or paste it), store the password
-  add [<name>] [--url ...]             Add one system, asking for what is missing
-  remove <name>                        Remove one system from the user-level rc file (alias: delete)
-  default [<name>]                     Show or set the system used when a call names none
-  store-credentials --system <name>    Store a password in the OS keychain (--all for every system)
-  doctor [--login]                     Check configuration, keychain and reachability
-  version                              Print the installed version
-  serve                                Run the MCP server by hand, on stdin/stdout
-  help                                 This text
+  setup              Add systems from a list and store the password
+  add                Add one system
+  remove             Remove a system
+  default            Show or set the default system
+  store-credentials  Store or change a password
+  doctor             Check the setup
+  version            Show the installed version
 `;
 
 const COMMANDS = [

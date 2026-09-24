@@ -80,7 +80,7 @@ describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout:
 
     expect(code).toBe(2);
     expect(output).toContain('Unknown command "test"');
-    expect(output).toContain('Commands:');
+    expect(output).toContain('doctor ');
   });
 
   it('suggests the command a typo was probably meant to be', async () => {
