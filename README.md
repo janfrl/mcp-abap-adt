@@ -111,7 +111,7 @@ In a terminal, `mcp-abap-adt` manages the SAP systems your MCP client uses:
 | `config [<setting> [<value>]]` | Show the whole configuration, or read, set (`--unset` removes) one setting, e.g. `config importFioriSystems false` |
 | `store-credentials --system <name>` | Store a password in the OS keychain; `--all` for every system at once |
 | `doctor [--login]` | Check configuration, keychain and reachability; `--login` tries one logon per system |
-| `version`, `help` | The installed version; this list |
+| `version`, `help` | The installed version (also `-v`, `--version`); this list (also `-h`, `--help`) |
 | `serve` | Run the MCP server by hand; typed without a command, `mcp-abap-adt` shows this list instead |
 
 ## 4. Configuring SAP systems

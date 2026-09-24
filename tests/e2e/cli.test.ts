@@ -97,15 +97,15 @@ describe.skipIf(!built)('CLI dispatch through the built entry point', { timeout:
     expect(output).toContain('Usage: mcp-abap-adt remove');
   });
 
-  it('prints the installed version', async () => {
-    const { code, output } = await runCli(['--version']);
+  it.each([['version'], ['--version'], ['-v']])('prints the installed version for %s', async (flag) => {
+    const { code, output } = await runCli([flag]);
 
     expect(code).toBe(0);
     expect(output.trim()).toMatch(/^\d+\.\d+\.\d+/u);
   });
 
-  it('prints the command list for help', async () => {
-    const { code, output } = await runCli(['help']);
+  it.each([['help'], ['--help'], ['-h']])('prints the command list for %s', async (flag) => {
+    const { code, output } = await runCli([flag]);
 
     expect(code).toBe(0);
     expect(output).toContain('doctor');
