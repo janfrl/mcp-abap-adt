@@ -261,8 +261,20 @@ function isMainModule(): boolean {
   }
 }
 
+/** Ctrl+C in a prompt: readline rejects with an AbortError, the secret prompt with its own error. */
+function isUserCancel(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.name === 'AbortError' || error.message === 'Aborted.' || error.message.includes('Ctrl+C'))
+  );
+}
+
 if (isMainModule()) {
   main().catch((error: unknown) => {
+    if (isUserCancel(error)) {
+      process.stderr.write('\nCancelled.\n');
+      process.exit(130);
+    }
     logWarn(`fatal: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   });
