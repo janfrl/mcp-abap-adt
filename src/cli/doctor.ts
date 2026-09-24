@@ -103,8 +103,8 @@ export async function doctor(options: DoctorOptions = {}, deps: DoctorDeps = {})
   const listed = registry.listSystems();
 
   // After loadAppConfig on purpose, so an opt-out arriving through a .env
-  // file has been seen. When this returns false - old Node without the
-  // runtime APIs, or the opt-out - a TLS failure cannot be blamed on the
+  // file has been seen. When this returns false - the opt-out, or an OS
+  // without certificates - a TLS failure cannot be blamed on the
   // certificate, and the advice below differs accordingly.
   const trustStoreLoaded = (deps.ensureTrustStore ?? ensureSystemTrustStore)();
 
@@ -196,9 +196,8 @@ export async function doctor(options: DoctorOptions = {}, deps: DoctorDeps = {})
         ? '\nThe OS trust store is loaded, so those certificates are not trusted even by your operating system.\n' +
             'Either have the CA installed, or accept it per system with "allowSelfSigned": true.\n' +
             'That switches verification off for the system, which is why it comes last.\n'
-        : '\nThe OS trust store could not be loaded here (an older Node, or SAP_USE_SYSTEM_CA=false).\n' +
-            'A certificate from your company CA then fails even though it is fine.\n' +
-            'On older Node, put "NODE_USE_SYSTEM_CA": "1" into the env block of every MCP client.\n' +
+        : '\nThe OS trust store is not in use here (SAP_USE_SYSTEM_CA=false, or the OS offers no certificates).\n' +
+            'A certificate from your company CA then fails even though it is fine; remove the opt-out.\n' +
             '"allowSelfSigned": true is the last resort, since it switches verification off.\n',
     );
   }

@@ -38,8 +38,9 @@ export async function handleExecuteQuery(
     if (!connection.config.allowFreeSql) {
       throw new Error(
         `Free SQL is disabled for system "${connection.name}". ` +
-          'Set "allowFreeSql": true for it in the configuration file, or SAP_ALLOW_FREE_SQL=true if you configure ' +
-          'the server through environment variables. GetTableContents still works, but it reads whole tables.',
+          `Allow it with: mcp-abap-adt config systems.${connection.name}.allowFreeSql true ` +
+          '(or SAP_ALLOW_FREE_SQL=true if you configure the server through environment variables). ' +
+          'GetTableContents still works, but it reads whole tables.',
       );
     }
 

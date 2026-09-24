@@ -29,9 +29,7 @@ export function resetTrustStoreForTests(): void {
  * This only ever widens trust to CAs the OS already accepts; it never
  * switches verification off. Skipped when NODE_USE_SYSTEM_CA already did the
  * same thing natively, and disabled by SAP_USE_SYSTEM_CA=false for anyone who
- * deliberately wants Node's bundled list only. The runtime APIs arrived
- * during Node 22, so on older patch levels this quietly changes nothing and
- * the environment variable remains the way.
+ * deliberately wants Node's bundled list only.
  */
 export function ensureSystemTrustStore(env: NodeJS.ProcessEnv = process.env, api: TrustStoreApi = tls): boolean {
   if (loaded !== undefined) return loaded;
@@ -61,7 +59,7 @@ export function ensureSystemTrustStore(env: NodeJS.ProcessEnv = process.env, api
     logDebug(`trusting ${system.length} CA certificates from the operating system store`);
     loaded = true;
   } catch {
-    // Older Node without the runtime APIs; NODE_USE_SYSTEM_CA still works.
+    // The APIs exist from Node 22.19, the engines floor; a failure here leaves Node's default list in place.
     loaded = false;
   }
   return loaded;

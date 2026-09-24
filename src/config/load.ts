@@ -256,7 +256,7 @@ const HINT_LIMIT = 5;
 async function describeNothingConfigured(importedAlready: boolean, homeDir?: string): Promise<string> {
   const base = 'No SAP system is configured.';
   const routes =
-    'Create an mcp-abap-adt.config.jsonc file with a "systems" entry, or set SAP_URL, SAP_USERNAME, SAP_PASSWORD and SAP_CLIENT.';
+    'Add systems with mcp-abap-adt setup (or add for a single one), or set SAP_URL, SAP_USERNAME, SAP_PASSWORD and SAP_CLIENT.';
 
   if (!importedAlready) {
     const available = await findImportableSystems(homeDir);
@@ -264,11 +264,11 @@ async function describeNothingConfigured(importedAlready: boolean, homeDir?: str
       const shown = available.slice(0, HINT_LIMIT).join(', ');
       const rest = available.length - HINT_LIMIT;
       const listed = rest > 0 ? `${shown} and ${rest} more` : shown;
-      return `${base} ${available.length} system${available.length === 1 ? '' : 's'} saved by the SAP Fiori tools VS Code extension could be used (${listed}): set "importFioriSystems": true, or SAP_IMPORT_FIORI_SYSTEMS=true, to adopt them together with their stored passwords. ${routes}`;
+      return `${base} ${available.length} system${available.length === 1 ? '' : 's'} saved by the SAP Fiori tools VS Code extension could be used (${listed}): mcp-abap-adt config importFioriSystems true, or SAP_IMPORT_FIORI_SYSTEMS=true, adopts them together with their stored passwords. ${routes}`;
     }
   }
 
-  return `${base} ${importedAlready ? routes : `Set "importFioriSystems": true to adopt systems saved by the SAP Fiori tools VS Code extension. ${routes}`}`;
+  return `${base} ${importedAlready ? routes : `mcp-abap-adt config importFioriSystems true adopts systems saved by the SAP Fiori tools VS Code extension. ${routes}`}`;
 }
 
 /** A look, not a load: discovery problems are somebody else's message. */
@@ -324,7 +324,7 @@ function applyEnvFallback(ctx: {
     const missing = ENV_KEYS.filter((key) => !env[key]);
     errors.push({
       scope: 'global',
-      message: `Incomplete SAP_* environment configuration, missing: ${missing.join(', ')}. Set all of ${ENV_KEYS.join(', ')} or configure systems in a config file.`,
+      message: `Incomplete SAP_* environment configuration, missing: ${missing.join(', ')}. Set all of ${ENV_KEYS.join(', ')}, or add systems with mcp-abap-adt setup.`,
     });
     return;
   }

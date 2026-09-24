@@ -59,7 +59,7 @@ export class ConnectionRegistry {
     if (!name) {
       throw new UnknownSystemError(
         `No system was given and no default system is configured. ${this.#available()} ` +
-          'Pass the "system" argument, or set "defaultSystem" in the configuration file.',
+          'Pass the "system" argument, or set a default: mcp-abap-adt default <name>',
       );
     }
 

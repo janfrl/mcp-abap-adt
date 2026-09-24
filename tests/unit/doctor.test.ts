@@ -109,15 +109,12 @@ describe('doctor', () => {
     expect(code).toBe(1);
     expect(text()).toContain('TLS failure (SELF_SIGNED_CERT_IN_CHAIN)');
     expect(text()).toContain('not trusted even by your operating system');
-    // With the store loaded, the environment variable is not the answer and
-    // must not be offered as one.
-    expect(text()).not.toContain('NODE_USE_SYSTEM_CA');
+    expect(text()).not.toContain('opt-out');
   });
 
-  it('points at NODE_USE_SYSTEM_CA when the trust store could not be loaded', async () => {
-    // Old Node without the runtime APIs, or an explicit opt-out: a company CA
-    // then fails even though the certificate is fine, and telling the user to
-    // switch verification off would be the wrong advice.
+  it('points at the opt-out when the trust store is not in use', async () => {
+    // A company CA then fails even though the certificate is fine, and telling
+    // the user to switch verification off would be the wrong advice.
     await writeFile(
       configFile,
       JSON.stringify({ systems: { dev: { url: 'https://dev.example.com', username: 'U', password: 'P' } } }),
@@ -128,7 +125,7 @@ describe('doctor', () => {
     const code = await doctor({ configFile }, { io, probeFetch: tlsDown, ensureTrustStore: () => false });
 
     expect(code).toBe(1);
-    expect(text()).toContain('"NODE_USE_SYSTEM_CA": "1"');
+    expect(text()).toContain('SAP_USE_SYSTEM_CA=false');
     expect(text()).toContain('last resort');
     expect(text()).not.toContain('not trusted even by your operating system');
   });

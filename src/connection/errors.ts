@@ -24,7 +24,7 @@ export class AdtTimeoutError extends Error {
     super(
       `No answer from system "${systemName}" within ${budgetMs} ms (${path}). ` +
         'A long-running query may simply need more time: pass timeoutMs on the ExecuteQuery call, ' +
-        'or raise "timeoutMs" for this system in the configuration.',
+        `or raise it for this system: mcp-abap-adt config systems.${systemName}.timeoutMs 120000`,
     );
     this.name = 'AdtTimeoutError';
   }
@@ -98,9 +98,9 @@ export function describeTlsFailure(error: unknown, systemName: string): Error | 
   // actionable for someone who has no config file at all.
   return new Error(
     `TLS certificate verification failed for system "${systemName}" (${code}). ` +
-      'If this system uses a self-signed or internally issued certificate, allow it explicitly: ' +
-      `add "allowSelfSigned": true to the "${systemName}" entry in your configuration file, ` +
-      'or set SAP_ALLOW_SELF_SIGNED=true if you configure the server through environment variables.',
+      'A certificate from a company CA the operating system trusts is accepted automatically, so this one is not. ' +
+      `If it is a self-signed sandbox, allow it explicitly: mcp-abap-adt config systems.${systemName}.allowSelfSigned true ` +
+      '(or SAP_ALLOW_SELF_SIGNED=true if you configure the server through environment variables).',
     { cause: error },
   );
 }
