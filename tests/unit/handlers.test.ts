@@ -252,6 +252,20 @@ describe('ExecuteQuery', () => {
     '<dataPreview:data>000</dataPreview:data><dataPreview:data>100</dataPreview:data>' +
     '</dataPreview:dataSet></dataPreview:columns></dataPreview:tableData>';
 
+  /** Records what reaches connection.request without any HTTP machinery. */
+  function recordingConnection(configTimeoutMs: number) {
+    const options: Array<{ timeoutMs?: number }> = [];
+    const connection = {
+      name: 'dev',
+      config: { allowFreeSql: true, timeoutMs: configTimeoutMs },
+      request: (_path: string, requestOptions: { timeoutMs?: number }) => {
+        options.push(requestOptions);
+        return Promise.resolve({ status: 200, headers: new Headers(), data: twoRows });
+      },
+    } as unknown as SapConnection;
+    return { connection, options };
+  }
+
   it('posts the query verbatim and returns CSV', async () => {
     const { connection, calls } = fakeConnection(() => ({ body: twoRows }));
 
@@ -300,20 +314,6 @@ describe('ExecuteQuery', () => {
   });
 
   describe('time budget', () => {
-    /** Records what reaches connection.request without any HTTP machinery. */
-    function recordingConnection(configTimeoutMs: number) {
-      const options: Array<{ timeoutMs?: number }> = [];
-      const connection = {
-        name: 'dev',
-        config: { allowFreeSql: true, timeoutMs: configTimeoutMs },
-        request: (_path: string, requestOptions: { timeoutMs?: number }) => {
-          options.push(requestOptions);
-          return Promise.resolve({ status: 200, headers: new Headers(), data: twoRows });
-        },
-      } as unknown as SapConnection;
-      return { connection, options };
-    }
-
     it('grants queries at least a minute even when the system timeout is lower', async () => {
       const { connection, options } = recordingConnection(30_000);
 

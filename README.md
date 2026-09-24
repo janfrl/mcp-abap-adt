@@ -22,7 +22,7 @@ This is a fork of [mario-andreschak/mcp-abap-adt](https://github.com/mario-andre
 
 ## 1. Requirements
 
-- **Node.js 22 or newer.** Get the LTS installer from [nodejs.org](https://nodejs.org/) if you do not have it. To check, open a terminal (PowerShell on Windows, Terminal on macOS) and run `node -v`.
+- **Node.js 22.19 or newer.** Get the LTS installer from [nodejs.org](https://nodejs.org/) if you do not have it. To check, open a terminal (PowerShell on Windows, Terminal on macOS) and run `node -v`.
 - **An SAP ABAP system reachable over HTTPS** with the ADT services active. Your basis administrator can activate `/sap/bc/adt` in transaction `SICF`. You also need a user with the authorizations to read the objects you ask for.
 
 ## 2. Quick start

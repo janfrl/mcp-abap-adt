@@ -186,17 +186,17 @@ describe('ExecuteQuery over the protocol', () => {
   });
 });
 
-describe('logging over the protocol', () => {
-  /** Collects notifications/message the server pushes to the client. */
-  async function clientCollectingLogs() {
-    const client = await connectClient(singleSystem);
-    const seen: Array<{ level: string; data: unknown; logger?: string }> = [];
-    client.setNotificationHandler(LoggingMessageNotificationSchema, (notification) => {
-      seen.push(notification.params);
-    });
-    return { client, seen };
-  }
+/** Collects notifications/message the server pushes to the client. */
+async function clientCollectingLogs() {
+  const client = await connectClient(singleSystem);
+  const seen: Array<{ level: string; data: unknown; logger?: string }> = [];
+  client.setNotificationHandler(LoggingMessageNotificationSchema, (notification) => {
+    seen.push(notification.params);
+  });
+  return { client, seen };
+}
 
+describe('logging over the protocol', () => {
   it('advertises the logging capability, so clients may set a level', async () => {
     const client = await connectClient(singleSystem);
 

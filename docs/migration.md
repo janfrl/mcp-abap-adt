@@ -31,7 +31,7 @@ Your four `SAP_*` variables continue to work and now describe a system named `de
 | Change | Symptom | Fix |
 | --- | --- | --- |
 | Certificates are verified | `TLS certificate verification failed ... (SELF_SIGNED_CERT_IN_CHAIN)` on the first tool call | Add `SAP_ALLOW_SELF_SIGNED=true` to the `env` block, or `"allowSelfSigned": true` to the system in a config file |
-| Node.js 22 or newer required | The server fails to start | Update Node.js; the package is also ESM-only now |
+| Node.js 22.19 or newer required | The server fails to start | Update Node.js; the package is also ESM-only now |
 | Package renamed | The old name keeps installing the original project | Use `@janfr/mcp-abap-adt` |
 | `SAP_LANGUAGE` is honoured | ABAP texts arrive in a different language than before | Remove the variable, or set it to the language you want |
 
