@@ -6,6 +6,7 @@ import { discoverFioriSystems } from './fiori.js';
 import {
   AppConfigFileSchema,
   type ConfigError,
+  type ConfigLayer,
   type ResolvedAppConfig,
   type ResolvedSystem,
   SystemConfigSchema,
@@ -126,7 +127,15 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
   // `overrides` above every discovered layer and merges with defu, which is a
   // deep merge, so `systems` combines entry by entry rather than being
   // replaced. A file is therefore optional; the common setup needs none.
-  const overrides = defu(options.overrides ?? {}, readEnvConfig(env, errors, sources));
+  const envSources: string[] = [];
+  const overrides = defu(options.overrides ?? {}, readEnvConfig(env, errors, envSources));
+  sources.push(...envSources);
+  // Highest precedence first, so a caller can tell which layer a setting comes from.
+  const layers: ConfigLayer[] = [];
+  if (Object.keys(overrides).length > 0) {
+    const label = [options.overrides ? 'the command line' : '', ...envSources].filter(Boolean).join(', ');
+    layers.push({ source: label, config: overrides as Record<string, unknown> });
+  }
 
   let rawConfig: unknown = {};
   try {
@@ -145,7 +154,10 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
     });
     rawConfig = loaded.config ?? {};
     for (const layer of loaded.layers ?? []) {
-      if (layer.configFile) sources.push(layer.configFile);
+      if (!layer.configFile) continue;
+      sources.push(layer.configFile);
+      const source = layer.cwd ? `${layer.configFile}.* in ${layer.cwd}` : layer.configFile;
+      layers.push({ source, config: (layer.config ?? {}) as Record<string, unknown> });
     }
   } catch (error) {
     errors.push({
@@ -222,7 +234,7 @@ export async function loadAppConfig(options: LoadAppConfigOptions = {}): Promise
     });
   }
 
-  return { defaultSystem, importFioriSystems: app.importFioriSystems, systems, errors, sources };
+  return { defaultSystem, importFioriSystems: app.importFioriSystems, systems, errors, sources, layers };
 }
 
 /** Names at most this many systems before summarising the rest. */

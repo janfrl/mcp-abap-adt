@@ -5,6 +5,7 @@ import type { ResolvedAppConfig, ResolvedSystem } from '../config/schema.js';
 import { ConnectionRegistry } from '../connection/registry.js';
 import { defaultRcDir, isRcSafeName, rcPathIn, readRc, rcSystems, writeRc, type RcConfig } from './rcFile.js';
 import { defaultIo, type CliDeps } from './storeCredentials.js';
+import { closest } from './suggest.js';
 import { renderTable } from './table.js';
 
 type ValueType = 'string' | 'boolean' | 'number';
@@ -50,6 +51,8 @@ type Key = { path: string[]; type: ValueType } | { error: string };
 function parseKey(key: string): Key {
   if (key in GLOBAL_KEYS) return { path: [key], type: GLOBAL_KEYS[key] };
   const match = /^systems\.([^.]+)\.([^.]+)$/u.exec(key);
+  const guess = match ? undefined : closest(key, Object.keys(GLOBAL_KEYS));
+  if (guess) return { error: `Unknown setting "${key}". Did you mean "${guess}"?` };
   if (!match) {
     return {
       error:
@@ -61,8 +64,14 @@ function parseKey(key: string): Key {
   if (field === 'password') {
     return { error: 'A password is not set here, since it would land in a file: use mcp-abap-adt store-credentials.' };
   }
-  if (!(field in SYSTEM_KEYS))
-    return { error: `Unknown system setting "${field}". Settings: ${Object.keys(SYSTEM_KEYS).join(', ')}.` };
+  if (!(field in SYSTEM_KEYS)) {
+    const fieldGuess = closest(field, Object.keys(SYSTEM_KEYS));
+    return {
+      error: fieldGuess
+        ? `Unknown system setting "${field}". Did you mean "${fieldGuess}"?`
+        : `Unknown system setting "${field}". Settings: ${Object.keys(SYSTEM_KEYS).join(', ')}.`,
+    };
+  }
   if (!isRcSafeName(name))
     return { error: `"${name}" cannot be a system name: use letters, digits, _ or - (not digits only).` };
   return { path: ['systems', name, field], type: SYSTEM_KEYS[field] };
@@ -80,6 +89,10 @@ function coerce(raw: string, type: ValueType): unknown {
     return Number(raw.trim());
   }
   return raw;
+}
+
+function valueAt(settings: Record<string, unknown>, path: string[]): unknown {
+  return path.reduce<unknown>((node, segment) => (node as Record<string, unknown> | undefined)?.[segment], settings);
 }
 
 function load(deps: ConfigDeps, rcDir: string): Promise<ResolvedAppConfig> {
@@ -216,10 +229,12 @@ export async function config(options: ConfigOptions, deps: ConfigDeps = {}): Pro
         ? (after as unknown as Record<string, unknown>)[field]
         : (after.systems.get(key.path[1]) as unknown as Record<string, unknown> | undefined)?.[field];
     if (effective !== undefined && JSON.stringify(effective) !== JSON.stringify(value)) {
-      const others = after.sources.filter((source) => !source.endsWith('.mcp-abap-adtrc'));
+      const winner = (after.layers ?? []).find(
+        (layer) => !layer.source.endsWith('.mcp-abap-adtrc') && valueAt(layer.config, key.path) !== undefined,
+      );
       io.out(
-        `But ${options.key} is ${JSON.stringify(effective)} in effect, set by a source that takes precedence` +
-          `${others.length > 0 ? ` (${others.join(', ')})` : ''}. Change it there, or it stays in effect.\n`,
+        `But ${options.key} is ${JSON.stringify(effective)} in effect, because ${winner ? winner.source : 'another source'} ` +
+          'sets it and takes precedence. Change it there, or it stays in effect.\n',
       );
       return 1;
     }

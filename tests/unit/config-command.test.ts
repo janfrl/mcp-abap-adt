@@ -104,8 +104,7 @@ describe('config', () => {
 
     expect(await config({ key: 'importFioriSystems', value: 'false' }, { io, rcDir, env })).toBe(1);
     expect(await readFile(rcPath, 'utf8')).toContain('importFioriSystems=false');
-    expect(out()).toContain('is true in effect');
-    expect(out()).toContain('SAP_IMPORT_FIORI_SYSTEMS');
+    expect(out()).toContain('is true in effect, because SAP_IMPORT_FIORI_SYSTEMS sets it');
   });
 
   it('refuses a password, unknown settings and values of the wrong type', async () => {
@@ -117,6 +116,10 @@ describe('config', () => {
     expect(err()).toContain('Unknown setting');
     expect(await config({ key: 'systems.DEV100.timeoutMs', value: 'soon' }, { io, rcDir })).toBe(2);
     expect(err()).toContain('whole number');
+    expect(await config({ key: 'importFioriSytems', value: 'false' }, { io, rcDir })).toBe(2);
+    expect(err()).toContain('Did you mean "importFioriSystems"?');
+    expect(await config({ key: 'systems.DEV100.langauge', value: 'EN' }, { io, rcDir })).toBe(2);
+    expect(err()).toContain('Did you mean "language"?');
     expect(existsSync(rcPath)).toBe(false);
   });
 });

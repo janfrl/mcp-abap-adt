@@ -100,4 +100,11 @@ export interface ResolvedAppConfig {
   errors: ConfigError[];
   /** Human readable list of the layers that contributed, for diagnostics. */
   sources: string[];
+  /** The layers with their raw settings, highest precedence first. */
+  layers?: ConfigLayer[];
+}
+
+export interface ConfigLayer {
+  source: string;
+  config: Record<string, unknown>;
 }

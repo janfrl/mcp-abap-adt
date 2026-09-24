@@ -10,6 +10,7 @@ import type { ConfigError, ResolvedAppConfig } from './config/schema.js';
 import { ConnectionRegistry } from './connection/registry.js';
 import { logWarn } from './lib/log.js';
 import { createServer } from './server.js';
+import { closest } from './cli/suggest.js';
 import { SERVER_VERSION } from './version.js';
 
 /**
@@ -88,26 +89,8 @@ const COMMANDS = [
   'help',
 ];
 
-function editDistance(a: string, b: string): number {
-  const row = Array.from({ length: b.length + 1 }, (_, j) => j);
-  for (let i = 1; i <= a.length; i++) {
-    let previous = row[0];
-    row[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const current = row[j];
-      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
-      previous = current;
-    }
-  }
-  return row[b.length];
-}
-
-/** The closest known command within two edits, for "Did you mean ...?". */
 function suggestCommand(input: string): string | undefined {
-  const [best] = COMMANDS.map((command) => ({ command, cost: editDistance(input.toLowerCase(), command) })).toSorted(
-    (x, y) => x.cost - y.cost,
-  );
-  return best && best.cost <= 2 ? best.command : undefined;
+  return closest(input, COMMANDS);
 }
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
