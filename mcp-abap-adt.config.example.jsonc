@@ -1,32 +1,17 @@
-// Copy to mcp-abap-adt.config.jsonc and adjust.
-// The server also accepts .json, .yaml, .toml and .ts, ~/.config/mcp-abap-adt/,
-// and an explicit path via --config or MCP_ABAP_ADT_CONFIG.
+// Copy to mcp-abap-adt.config.jsonc and adjust, or pass the path with --config.
 {
-  // Used when a tool call omits the "system" argument. Without it, calls must
-  // name a system unless exactly one is configured.
   "defaultSystem": "dev",
-
-  // Adopt systems saved by the SAP Fiori tools VS Code extension, including
-  // their keychain passwords. Systems using anything other than basic
-  // authentication are skipped with an explanation in ListSystems.
   "importFioriSystems": false,
 
   "systems": {
-    // An entry whose name matches an imported system overrides just these
-    // settings; url, client and keychain stay as imported. Handy for allowing
-    // an internally issued certificate on a system saved in Fiori tools.
-    // "QAS200": { "allowSelfSigned": true },
-
-    // Password from the OS keychain. Store it once with:
-    //   mcp-abap-adt store-credentials --system dev
+    // Password in the OS keychain: mcp-abap-adt store-credentials --system dev
     "dev": {
       "url": "https://dev.example.com:44300",
       "client": "100",
-      "username": "DEVELOPER",
       "keychain": true
     },
 
-    // Password from an environment variable, e.g. supplied by the MCP client.
+    // Password from an environment variable.
     "qas": {
       "url": "https://qas.example.com:44300",
       "client": "200",
@@ -34,28 +19,12 @@
       "passwordEnv": "SAP_QAS_PASSWORD"
     },
 
-    // A system with an internally issued certificate. Certificates are
-    // verified unless a system opts out here.
+    // Self-signed certificate; company CAs need nothing, the OS trust store is used.
     "sandbox": {
       "url": "https://vhcalnplci.dummy.nodomain:44300",
       "client": "001",
-      "username": "DEVELOPER",
-      "language": "EN",
       "keychain": true,
-      "allowSelfSigned": true,
-      "timeoutMs": 60000
-    },
-
-    // Forbid ad-hoc SELECTs through ExecuteQuery. Note the trade-off:
-    // GetTableContents still reads whole tables, so this makes a model read
-    // more data, not less. Worth it only where any unplanned query is
-    // unwelcome for its own sake.
-    "prd": {
-      "url": "https://prd.example.com:44300",
-      "client": "400",
-      "username": "DEVELOPER",
-      "keychain": true,
-      "allowFreeSql": false
+      "allowSelfSigned": true
     }
   }
 }
