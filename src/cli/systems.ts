@@ -143,7 +143,8 @@ export async function removeSystem(options: RemoveSystemOptions, deps: SystemsDe
     return 2;
   }
 
-  const rcPath = rcPathIn(deps.rcDir ?? defaultRcDir());
+  const rcDir = deps.rcDir ?? defaultRcDir();
+  const rcPath = rcPathIn(rcDir);
   const { config, existed } = await readRc(rcPath);
   const systems = rcSystems(config);
   if (!(options.name in systems)) {
@@ -158,6 +159,21 @@ export async function removeSystem(options: RemoveSystemOptions, deps: SystemsDe
   const remaining = { ...systems };
   delete remaining[options.name];
   await writeRc(rcPath, { ...config, systems: remaining }, existed);
+
+  // An rc entry with the name of an imported system is only an override; the system itself stays.
+  const after = await loadAppConfig(deps.rcDir ? { homeDir: rcDir, cwd: rcDir, env: {} } : {});
+  const stillThere = after.systems.get(options.name);
+  if (stillThere) {
+    io.out(
+      `Wrote ${rcPath}: removed the local settings for "${options.name}", but the system is still configured: ` +
+        `it comes from ${stillThere.origin === 'fiori-tools' ? 'SAP Fiori tools' : `the ${stillThere.origin}`}.\n` +
+        (stillThere.origin === 'fiori-tools'
+          ? 'Remove it in the Fiori tools extension, or stop the import for all systems with importFioriSystems=false.\n'
+          : ''),
+    );
+    return 1;
+  }
+
   io.out(
     `Wrote ${rcPath} (previous version in ${rcPath}.bak): removed "${options.name}".\n` +
       'Its keychain entry stays, since the SAP Fiori tools extension may share it; delete it in the Credential Manager if you want it gone.\n',

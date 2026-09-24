@@ -169,6 +169,30 @@ describe('remove', () => {
     expect(out()).toContain('was the default system');
   });
 
+  it('says when the removed entry was only an override and the imported system stays', async () => {
+    await mkdir(join(rcDir, '.saptools'), { recursive: true });
+    await writeFile(
+      join(rcDir, '.saptools', 'systems.json'),
+      JSON.stringify({ systems: { a: { name: 'QAS200', url: 'https://qas.example.com', client: '200' } } }),
+      'utf8',
+    );
+    await writeFile(
+      rcPath,
+      `importFioriSystems=true\nsystems.QAS200.url="https://qas.example.com"\nsystems.QAS200.client="200"\n`,
+      'utf8',
+    );
+    const { io, out } = scriptedIo();
+
+    const code = await removeSystem({ name: 'QAS200' }, { io, rcDir });
+
+    expect(code).toBe(1);
+    expect(await readFile(rcPath, 'utf8')).not.toContain('systems.QAS200');
+    expect(out()).toContain('still configured');
+    expect(out()).toContain('SAP Fiori tools');
+    expect(out()).toContain('importFioriSystems=false');
+    expect(out()).not.toContain('removed "QAS200"');
+  });
+
   it('names the systems it knows when the name is unknown', async () => {
     await writeFile(rcPath, EXISTING, 'utf8');
     const { io, err } = scriptedIo();
